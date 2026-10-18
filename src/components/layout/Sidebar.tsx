@@ -1,6 +1,7 @@
 import React from "react";
 import { useApp } from "../../context/AppContext";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/src/lib/supabaseClient";
 import {
   LayoutDashboard,
   Compass,
@@ -59,6 +60,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const handleNavClick = (id: string) => {
     navigate(id);
     onClose();
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.log(error.message);
+      return;
+    }
+
+    navigate("/");
   };
 
   return (
@@ -185,7 +197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
           <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs px-2">
             <button
-              onClick={() => handleNavClick("/")}
+              onClick={() => handleSignOut()}
               className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-[11px]"
               title="Sign Out to Get Started page"
             >

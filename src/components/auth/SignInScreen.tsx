@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../../context/AppContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
   Eye,
@@ -13,10 +13,10 @@ import {
   X,
   KeyRound,
 } from "lucide-react";
+import { supabase } from "@/src/lib/supabaseClient";
 
 export const SignInScreen: React.FC = () => {
-  const { setScreen, updateUserProfile, showNotification, userProfile } =
-    useApp();
+  const { updateUserProfile, showNotification, userProfile } = useApp();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,6 +32,9 @@ export const SignInScreen: React.FC = () => {
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoverySent, setRecoverySent] = useState(false);
   const [recoveryError, setRecoveryError] = useState("");
+  const [notification, setNotification] = useState<string>("");
+
+  const navigate = useNavigate();
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -52,24 +55,41 @@ export const SignInScreen: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setGoogleNotice(null);
 
     if (!validate()) return;
 
     setIsLoading(true);
 
-    // Simulate clean sign-in verification
-    setTimeout(() => {
-      setIsLoading(false);
-      // Synchronize session email without storing passwords in plaintext
-      updateUserProfile({
-        email: email.trim(),
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      showNotification(`Signed in successfully as ${email.trim()}`);
-      setScreen("dashboard");
-    }, 650);
+
+      if (error) {
+        setErrors({ message: error.message });
+        return;
+      }
+
+      if (data.session) {
+        navigate("/dashboard");
+      }
+
+      setNotification(`Signed in successfully as ${data.user.email}`);
+    } catch (error) {
+      setErrors({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleClick = () => {
@@ -78,8 +98,11 @@ export const SignInScreen: React.FC = () => {
     );
   };
 
-  const handleRecoverySubmit = (e: React.FormEvent) => {
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    setRecoveryError("");
+
     if (
       !recoveryEmail.trim() ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim())
@@ -87,8 +110,35 @@ export const SignInScreen: React.FC = () => {
       setRecoveryError("Please enter a valid email address.");
       return;
     }
-    setRecoveryError("");
-    setRecoverySent(true);
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        recoveryEmail.trim(),
+
+        { redirectTo: `${window.location.origin}/signin/resetpassword` },
+      );
+
+      if (error) {
+        setRecoveryError(error.message);
+        return;
+      }
+
+      setNotification(
+        "If an account exists for that email, you will receive a password reset link. Check your inbox and spam folder.",
+      );
+
+      setRecoverySent(true);
+    } catch (error) {
+      setRecoveryError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -148,7 +198,14 @@ export const SignInScreen: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {errors.message && (
+          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-900 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-[#3867F6] shrink-0 mt-0.5" />
+            <div className="leading-relaxed">{errors.message}</div>
+          </div>
+        )}
+
+        <form onSubmit={handleSignIn} className="space-y-4">
           {/* Email Address */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -355,7 +412,11 @@ export const SignInScreen: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleRecoverySubmit} className="space-y-3">
+              <form
+                noValidate
+                onSubmit={handleRecoverySubmit}
+                className="space-y-3"
+              >
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Enter your registered email address to receive password reset
                   instructions.

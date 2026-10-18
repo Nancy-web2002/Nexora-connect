@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
+import { supabase } from "./lib/supabaseClient";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
 import { WelcomeScreen } from "./components/screens/WelcomeScreen";
@@ -13,12 +14,15 @@ import { GetStartedScreen } from "./components/auth/GetStartedScreen";
 import { SignUpScreen } from "./components/auth/SignUpScreen";
 import { SignInScreen } from "./components/auth/SignInScreen";
 import { EligibilityModal } from "./components/modals/EligibilityModal";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Routes, Route, useLocation } from "react-router-dom";
+import ProtectedRoute from "./components/auth/protectedRoute";
+import EmailVerificationScreen from "./components/auth/EmailVerification";
+import type { User } from "@supabase/supabase-js";
+import ResetPassword from "./components/auth/ResetPassword";
 
 const AppContent: React.FC = () => {
   const {
-    screen,
     notification,
     isEligibilityModalOpen,
     setIsEligibilityModalOpen,
@@ -26,39 +30,7 @@ const AppContent: React.FC = () => {
   } = useApp();
   /*const [isSidebarOpen, setIsSidebarOpen] = useState(false);*/
 
-  const isAuthScreen =
-    screen === "get-started" || screen === "sign-up" || screen === "sign-in";
-
-  // Render active screen
-  const renderScreen = () => {
-    switch (screen) {
-      case "get-started":
-        return <GetStartedScreen />;
-      case "sign-up":
-        return <SignUpScreen />;
-      case "sign-in":
-        return <SignInScreen />;
-      case "welcome":
-        return <WelcomeScreen />;
-      case "dashboard":
-        return <DashboardScreen />;
-      case "discover":
-        return <DiscoveryScreen />;
-      case "opportunity-detail":
-        return <OpportunityDetailScreen />;
-      case "ai-assistant":
-      case "action-plan":
-        return <AIAssistantScreen />;
-      case "my-opportunities":
-        return <MyOpportunitiesScreen />;
-      case "settings":
-        return <SettingsScreen />;
-      default:
-        return <DashboardScreen />;
-    }
-  };
-
-  if (isAuthScreen) {
+  /*if (isAuthScreen) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#101828] antialiased">
         {renderScreen()}
@@ -72,7 +44,7 @@ const AppContent: React.FC = () => {
         )}
       </div>
     );
-  }
+  }*/
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#101828] flex flex-col lg:flex-row antialiased">
@@ -92,9 +64,6 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Main Viewport */}
-        <main className="flex-1 overflow-y-auto">{renderScreen()}</main>
       </div>
 
       {/* Interactive Eligibility Assessment Modal */}
@@ -109,13 +78,27 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!error) {
+        setUser(data.session?.user ?? null);
+      }
+    };
+
+    checkUser();
+  }, []);
 
   const location = useLocation();
 
   const isAuthScreen =
     location.pathname === "/" ||
     location.pathname === "/signin" ||
-    location.pathname === "/signup";
+    location.pathname === "/signup" ||
+    location.pathname === "/verification";
 
   console.log(isSidebarOpen);
 
@@ -145,19 +128,30 @@ export default function App() {
                 <Route path="/" element={<GetStartedScreen />} />
                 <Route path="/signin" element={<SignInScreen />} />
                 <Route path="/signup" element={<SignUpScreen />} />
-                <Route path="/dashboard" element={<DashboardScreen />} />
-                <Route path="/welcome" element={<WelcomeScreen />} />
-                <Route path="/discover" element={<DiscoveryScreen />} />
                 <Route
-                  path="/opportunity/details"
-                  element={<OpportunityDetailScreen />}
+                  path="/verification"
+                  element={<EmailVerificationScreen />}
                 />
                 <Route
-                  path="/opportunity"
-                  element={<MyOpportunitiesScreen />}
+                  path="/signin/resetpassword"
+                  element={<ResetPassword />}
                 />
-                <Route path="/ai-assistant" element={<AIAssistantScreen />} />
-                <Route path="/settings" element={<SettingsScreen />} />
+
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/dashboard" element={<DashboardScreen />} />
+                  <Route path="/welcome" element={<WelcomeScreen />} />
+                  <Route path="/discover" element={<DiscoveryScreen />} />
+                  <Route
+                    path="/opportunity/details"
+                    element={<OpportunityDetailScreen />}
+                  />
+                  <Route
+                    path="/opportunity"
+                    element={<MyOpportunitiesScreen />}
+                  />
+                  <Route path="/ai-assistant" element={<AIAssistantScreen />} />
+                  <Route path="/settings" element={<SettingsScreen />} />
+                </Route>
               </Routes>
             </main>
           </div>

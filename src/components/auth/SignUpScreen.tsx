@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../../context/AppContext";
+import { supabase } from "@/src/lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 
 export const SignUpScreen: React.FC = () => {
-  const { setScreen, updateUserProfile, showNotification } = useApp();
+  const { updateUserProfile, showNotification } = useApp();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,6 +27,7 @@ export const SignUpScreen: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [googleNotice, setGoogleNotice] = useState<string | null>(null);
 
@@ -67,7 +69,7 @@ export const SignUpScreen: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGoogleNotice(null);
 
@@ -75,20 +77,44 @@ export const SignUpScreen: React.FC = () => {
 
     setIsLoading(true);
 
-    // Simulate clean verification/session initialization
-    setTimeout(() => {
-      setIsLoading(false);
-      // Update session user profile without storing passwords in plaintext
-      updateUserProfile({
-        name: fullName.trim(),
+    try {
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            fullName: fullName.trim(),
+          },
+        },
       });
-      showNotification(
-        `Welcome to Nexora Connect, ${fullName.trim()}! Your account has been initialized.`,
-      );
 
-      navigate("/dashboard");
-    }, 700);
+      if (error) {
+        setErrors({ message: error.message });
+        return;
+      }
+
+      console.log(data);
+
+      if (data.session) {
+        showNotification(
+          `Welcome to Nexora Connect, ${fullName.trim()}! Your account has been initialized.`,
+        );
+
+        navigate("/signin");
+      } else {
+        navigate("/verification", {
+          state: { email: email.trim() },
+        });
+      }
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleClick = () => {
@@ -149,6 +175,13 @@ export const SignUpScreen: React.FC = () => {
               <span className="font-semibold">Provider Notice: </span>
               {googleNotice}
             </div>
+          </div>
+        )}
+
+        {submitError && (
+          <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-red-900 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-[#3867F6] shrink-0 mt-0.5" />
+            <div className="leading-relaxed">{submitError}</div>
           </div>
         )}
 

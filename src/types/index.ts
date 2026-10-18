@@ -1,14 +1,17 @@
 export type OpportunityCategory =
-  | 'Scholarship'
-  | 'Internship'
-  | 'Course'
-  | 'Certification'
-  | 'Mentorship'
-  | 'Fellowship';
+  | "Scholarship"
+  | "Internship"
+  | "Course"
+  | "Certification"
+  | "Mentorship"
+  | "Fellowship";
 
-export type VerificationStatus = 'Verified' | 'Partially Verified' | 'Unverified';
+export type VerificationStatus =
+  | "Verified"
+  | "Partially Verified"
+  | "Unverified";
 
-export type EvidenceCheckStatus = 'confirmed' | 'caution' | 'missing';
+export type EvidenceCheckStatus = "confirmed" | "caution" | "missing";
 
 export interface EvidenceCheck {
   id: string;
@@ -21,11 +24,11 @@ export interface EvidenceCheck {
 export interface OpportunitySource {
   title: string;
   type:
-    | 'Official Institution Portal'
-    | 'Academic Consortium Registry'
-    | 'Government / Ministry Notice'
-    | 'Accreditation Body'
-    | 'Direct Corporate Careers';
+    | "Official Institution Portal"
+    | "Academic Consortium Registry"
+    | "Government / Ministry Notice"
+    | "Accreditation Body"
+    | "Direct Corporate Careers";
   publisher: string;
   dateAccessed: string;
   supports: string;
@@ -41,7 +44,12 @@ export interface Opportunity {
   description: string;
   funding: string;
   location: string;
-  regionTag: 'Global' | 'Nigeria / Africa' | 'North America' | 'Europe' | 'Remote';
+  regionTag:
+    | "Global"
+    | "Nigeria / Africa"
+    | "North America"
+    | "Europe"
+    | "Remote";
   eligibility: string[];
   deadline: string;
   deadlineTimestamp: number;
@@ -56,7 +64,7 @@ export interface Opportunity {
   featured?: boolean;
 }
 
-export type ApplicationStage = 'saved' | 'exploring' | 'preparing' | 'applied';
+export type ApplicationStage = "saved" | "exploring" | "preparing" | "applied";
 
 export interface UserOpportunityState {
   opportunityId: string;
@@ -71,7 +79,7 @@ export interface ActionPlanTask {
   opportunityId?: string;
   title: string;
   description: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
   timeline: string;
   category: string;
   sourceName?: string;
@@ -91,7 +99,7 @@ export interface ActionPlan {
 
 export interface ChatMessage {
   id: string;
-  sender: 'user' | 'assistant';
+  sender: "user" | "assistant";
   content: string;
   timestamp: string;
   recommendedOpportunityIds?: string[];
@@ -104,20 +112,11 @@ export interface UserProfile {
   role: string;
   primaryGoal: string;
   fieldOfInterest: string;
-  experienceLevel: 'Undergraduate' | 'Recent Graduate' | 'Early-Career Professional' | 'Career Switcher';
+  experienceLevel:
+    | "Undergraduate"
+    | "Recent Graduate"
+    | "Early-Career Professional"
+    | "Career Switcher";
   location: string;
   avatarUrl: string;
 }
-
-export type ActiveScreen =
-  | 'get-started'
-  | 'sign-up'
-  | 'sign-in'
-  | 'welcome'
-  | 'dashboard'
-  | 'discover'
-  | 'opportunity-detail'
-  | 'ai-assistant'
-  | 'my-opportunities'
-  | 'action-plan'
-  | 'settings';
