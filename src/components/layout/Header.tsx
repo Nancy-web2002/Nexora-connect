@@ -1,6 +1,14 @@
-import React from 'react';
-import { useApp } from '../../context/AppContext';
-import { Menu, Search, Sparkles, ShieldCheck, ExternalLink, ArrowRight } from 'lucide-react';
+import React from "react";
+import { useApp } from "../../context/AppContext";
+import {
+  Menu,
+  Search,
+  Sparkles,
+  ShieldCheck,
+  ExternalLink,
+  ArrowRight,
+} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -9,32 +17,34 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { screen, setScreen, searchQuery, setSearchQuery } = useApp();
 
+  const location = useLocation();
+
   const getBreadcrumbs = () => {
-    switch (screen) {
-      case 'get-started':
-        return ['Nexora Connect', 'Get Started'];
-      case 'sign-up':
-        return ['Authentication', 'Create Account'];
-      case 'sign-in':
-        return ['Authentication', 'Sign In'];
-      case 'welcome':
-        return ['Nexora Connect', 'Welcome & Goal Personalization'];
-      case 'dashboard':
-        return ['Nexora Connect', 'Overview Dashboard'];
-      case 'discover':
-        return ['Opportunities', 'Search & Evidence Discovery'];
-      case 'opportunity-detail':
-        return ['Opportunities', 'Evidence Audit & Verification'];
-      case 'ai-assistant':
-        return ['AI Advisory', 'Community Chat & Recommendations'];
-      case 'action-plan':
-        return ['Action Plan', 'Interactive Milestones & Tasks'];
-      case 'my-opportunities':
-        return ['Tracker', 'Saved Opportunities & Deadlines'];
-      case 'settings':
-        return ['Account', 'Profile & Discovery Preferences'];
+    switch (location.pathname) {
+      case "/":
+        return ["Nexora Connect", "Get Started"];
+      case "/signup":
+        return ["Authentication", "Create Account"];
+      case "/signin":
+        return ["Authentication", "Sign In"];
+      case "/welcome":
+        return ["Nexora Connect", "Welcome & Goal Personalization"];
+      case "/dashboard":
+        return ["Nexora Connect", "Overview Dashboard"];
+      case "/discover":
+        return ["Opportunities", "Search & Evidence Discovery"];
+      case "/opportunity/details":
+        return ["Opportunities", "Evidence Audit & Verification"];
+      case "/ai-assistant":
+        return ["AI Advisory", "Community Chat & Recommendations"];
+      case "/action-plan":
+        return ["Action Plan", "Interactive Milestones & Tasks"];
+      case "/opportunity":
+        return ["Tracker", "Saved Opportunities & Deadlines"];
+      case "/settings":
+        return ["Account", "Profile & Discovery Preferences"];
       default:
-        return ['Nexora Connect', 'Dashboard'];
+        return ["Nexora Connect", "Dashboard"];
     }
   };
 
@@ -55,64 +65,74 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         <nav className="flex items-center gap-2 text-sm text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">
           <span className="font-medium text-slate-900">{breadcrumbs[0]}</span>
           <span className="text-slate-300">/</span>
-          <span className="text-slate-600 font-medium truncate">{breadcrumbs[1]}</span>
+          <span className="text-slate-600 font-medium truncate">
+            {breadcrumbs[1]}
+          </span>
         </nav>
       </div>
 
       {/* Zone 2: Fast Navigation Shortcuts (Desktop) */}
       <div className="hidden md:flex items-center gap-5 text-xs font-medium text-slate-600 shrink-0">
-        <button
-          onClick={() => setScreen('discover')}
+        <Link
+          to={"/discover"}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap ${
-            screen === 'discover' ? 'text-[#3867F6] font-semibold' : ''
+            location.pathname === "/discover"
+              ? "text-[#3867F6] font-semibold"
+              : ""
           }`}
         >
           Explore All (9)
-        </button>
-        <button
-          onClick={() => setScreen('opportunity-detail')}
+        </Link>
+        <Link
+          to={"/opportunity/details"}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap ${
-            screen === 'opportunity-detail' ? 'text-[#3867F6] font-semibold' : ''
+            location.pathname === "/opportunity/details"
+              ? "text-[#3867F6] font-semibold"
+              : ""
           }`}
         >
           Audit Panel
-        </button>
-        <button
-          onClick={() => setScreen('ai-assistant')}
+        </Link>
+        <Link
+          to={"/ai-assistant"}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap ${
-            screen === 'ai-assistant' ? 'text-[#3867F6] font-semibold' : ''
+            location.pathname === "/ai-assistant"
+              ? "text-[#3867F6] font-semibold"
+              : ""
           }`}
         >
           AI Advisor
-        </button>
-        <button
-          onClick={() => setScreen('action-plan')}
+        </Link>
+        <Link
+          to={"/action-plan"}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap ${
-            screen === 'action-plan' ? 'text-[#3867F6] font-semibold' : ''
+            location.pathname === "/action-plan"
+              ? "text-[#3867F6] font-semibold"
+              : ""
           }`}
         >
           Action Plan
-        </button>
+        </Link>
       </div>
 
       {/* Zone 3: Primary Action */}
       <div className="flex items-center gap-3 shrink-0">
-        {screen !== 'ai-assistant' ? (
-          <button
-            onClick={() => setScreen('ai-assistant')}
+        {location.pathname !== "/ai-assistant" ? (
+          <Link
+            to={"/ai-assistant"}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#3867F6] hover:bg-[#2D55D8] rounded-lg transition-colors whitespace-nowrap shadow-xs"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Consult AI Advisor</span>
-          </button>
+          </Link>
         ) : (
-          <button
-            onClick={() => setScreen('discover')}
+          <Link
+            to={"/discover"}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap border border-slate-200"
           >
             <span>Search Opportunities</span>
             <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          </Link>
         )}
       </div>
     </header>

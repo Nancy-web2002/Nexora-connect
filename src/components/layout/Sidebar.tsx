@@ -1,6 +1,6 @@
-import React from 'react';
-import { useApp } from '../../context/AppContext';
-import { ActiveScreen } from '../../types';
+import React from "react";
+import { useApp } from "../../context/AppContext";
+import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Compass,
@@ -13,7 +13,7 @@ import {
   ChevronRight,
   HelpCircle,
   LogOut,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,22 +21,43 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { screen, setScreen, userProfile, savedOpportunityIds, actionTasks } = useApp();
+  const { userProfile, savedOpportunityIds, actionTasks } = useApp();
+
+  const navigate = useNavigate();
 
   const completedTasksCount = actionTasks.filter((t) => t.completed).length;
 
-  const navItems: { id: ActiveScreen; label: string; icon: React.ElementType; badge?: string | number }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'discover', label: 'Discover Opportunities', icon: Compass },
-    { id: 'opportunity-detail', label: 'Opportunity Verification', icon: ShieldCheck },
-    { id: 'ai-assistant', label: 'AI Assistant', icon: BotMessageSquare },
-    { id: 'action-plan', label: 'My Action Plan', icon: ListTodo, badge: `${completedTasksCount}/${actionTasks.length}` },
-    { id: 'my-opportunities', label: 'My Opportunities & Progress', icon: BookMarked, badge: savedOpportunityIds.length },
-    { id: 'settings', label: 'Settings & Profile', icon: Settings },
+  const navItems: {
+    id: string;
+    label: string;
+    icon: React.ElementType;
+    badge?: string | number;
+  }[] = [
+    { id: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "/discover", label: "Discover Opportunities", icon: Compass },
+    {
+      id: "/opportunity/details",
+      label: "Opportunity Verification",
+      icon: ShieldCheck,
+    },
+    { id: "/ai-assistant", label: "AI Assistant", icon: BotMessageSquare },
+    {
+      id: "/action-plan",
+      label: "My Action Plan",
+      icon: ListTodo,
+      badge: `${completedTasksCount}/${actionTasks.length}`,
+    },
+    {
+      id: "/opportunity",
+      label: "My Opportunities & Progress",
+      icon: BookMarked,
+      badge: savedOpportunityIds.length,
+    },
+    { id: "/settings", label: "Settings & Profile", icon: Settings },
   ];
 
-  const handleNavClick = (id: ActiveScreen) => {
-    setScreen(id);
+  const handleNavClick = (id: string) => {
+    navigate(id);
     onClose();
   };
 
@@ -53,13 +74,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar container */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#101828] text-white flex flex-col border-r border-slate-800 transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand header */}
         <div className="h-18 px-6 flex items-center justify-between border-b border-slate-800/80">
-          <div
-            onClick={() => setScreen('dashboard')}
+          <Link
+            to={"/dashboard"}
             className="flex items-center gap-3 cursor-pointer select-none group"
           >
             <div className="w-9 h-9 rounded-lg bg-[#3867F6] flex items-center justify-center text-white shadow-sm shadow-[#3867F6]/30">
@@ -73,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 Verified Opportunity Platform
               </span>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Quick onboarding / kickoff banner */}
@@ -84,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               Interactive Demo
             </span>
             <button
-              onClick={() => handleNavClick('welcome')}
+              onClick={() => handleNavClick("/welcome")}
               className="text-[11px] text-slate-300 hover:text-white underline underline-offset-2"
             >
               Start Screen 1
@@ -102,27 +123,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = screen === item.id;
+            const isActive = location.pathname === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                   isActive
-                    ? 'bg-[#3867F6] text-white shadow-sm'
-                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                    ? "bg-[#3867F6] text-white shadow-sm"
+                    : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon
+                    className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`}
+                  />
                   <span className="truncate">{item.label}</span>
                 </div>
                 {item.badge !== undefined && (
                   <span
                     className={`text-[11px] px-2 py-0.5 rounded-md font-mono ${
                       isActive
-                        ? 'bg-white/20 text-white'
-                        : 'bg-slate-800 text-slate-400'
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-800 text-slate-400"
                     }`}
                   >
                     {item.badge}
@@ -136,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* User Profile Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/60">
           <div
-            onClick={() => handleNavClick('settings')}
+            onClick={() => handleNavClick("settings")}
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/70 cursor-pointer transition-colors"
           >
             <img
@@ -146,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0"
               onError={(e) => {
                 // styled fallback container
-                (e.target as HTMLElement).style.display = 'none';
+                (e.target as HTMLElement).style.display = "none";
               }}
             />
             <div className="flex-1 min-w-0">
@@ -162,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
           <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs px-2">
             <button
-              onClick={() => handleNavClick('get-started')}
+              onClick={() => handleNavClick("/")}
               className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-[11px]"
               title="Sign Out to Get Started page"
             >
@@ -170,7 +193,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <span>Sign Out</span>
             </button>
             <button
-              onClick={() => handleNavClick('sign-in')}
+              onClick={() => handleNavClick("/signin")}
               className="text-[#3867F6] hover:text-blue-300 transition-colors text-[11px] font-medium"
             >
               Auth Pages

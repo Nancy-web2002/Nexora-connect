@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import React, { useState } from "react";
+import { useApp } from "../../context/AppContext";
+import { Link } from "react-router-dom";
 import {
   ShieldCheck,
   Eye,
@@ -11,13 +12,14 @@ import {
   Info,
   X,
   KeyRound,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const SignInScreen: React.FC = () => {
-  const { setScreen, updateUserProfile, showNotification, userProfile } = useApp();
+  const { setScreen, updateUserProfile, showNotification, userProfile } =
+    useApp();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -27,23 +29,23 @@ export const SignInScreen: React.FC = () => {
 
   // Forgot password flow
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
-  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoverySent, setRecoverySent] = useState(false);
-  const [recoveryError, setRecoveryError] = useState('');
+  const [recoveryError, setRecoveryError] = useState("");
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Email address is required.';
+      newErrors.email = "Email address is required.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      newErrors.email = 'Please enter a valid email address.';
+      newErrors.email = "Please enter a valid email address.";
     }
 
     if (!password) {
-      newErrors.password = 'Password is required.';
+      newErrors.password = "Password is required.";
     } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters.';
+      newErrors.password = "Password must be at least 6 characters.";
     }
 
     setErrors(newErrors);
@@ -66,23 +68,26 @@ export const SignInScreen: React.FC = () => {
         email: email.trim(),
       });
       showNotification(`Signed in successfully as ${email.trim()}`);
-      setScreen('dashboard');
+      setScreen("dashboard");
     }, 650);
   };
 
   const handleGoogleClick = () => {
     setGoogleNotice(
-      'Google authentication requires a configured OAuth Client ID in your cloud provider environment. Please sign in using your email address and password above.'
+      "Google authentication requires a configured OAuth Client ID in your cloud provider environment. Please sign in using your email address and password above.",
     );
   };
 
   const handleRecoverySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recoveryEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim())) {
-      setRecoveryError('Please enter a valid email address.');
+    if (
+      !recoveryEmail.trim() ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim())
+    ) {
+      setRecoveryError("Please enter a valid email address.");
       return;
     }
-    setRecoveryError('');
+    setRecoveryError("");
     setRecoverySent(true);
   };
 
@@ -90,30 +95,34 @@ export const SignInScreen: React.FC = () => {
     <div className="min-h-screen bg-[#F8FAFC] text-[#101828] flex flex-col justify-between py-8 px-4 sm:px-6 selection:bg-[#3867F6]/15 selection:text-[#101828]">
       {/* Top Header */}
       <div className="max-w-md w-full mx-auto flex items-center justify-between mb-4">
-        <button
-          onClick={() => setScreen('get-started')}
+        <Link
+          to={"/"}
           className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back</span>
-        </button>
+        </Link>
 
-        <div
-          onClick={() => setScreen('get-started')}
-          className="flex items-center gap-2 cursor-pointer select-none"
-        >
-          <div className="w-8 h-8 rounded-lg bg-[#101828] flex items-center justify-center text-white shadow-xs">
-            <ShieldCheck className="w-5 h-5 text-[#3867F6]" />
-          </div>
-          <span className="font-bold text-sm text-[#101828]">Nexora Connect</span>
+        <div>
+          <Link
+            to={"/"}
+            className="flex items-center gap-2 cursor-pointer select-none"
+          >
+            <div className="w-8 h-8 rounded-lg bg-[#101828] flex items-center justify-center text-white shadow-xs">
+              <ShieldCheck className="w-5 h-5 text-[#3867F6]" />
+            </div>
+            <span className="font-bold text-sm text-[#101828]">
+              Nexora Connect
+            </span>
+          </Link>
         </div>
 
-        <button
-          onClick={() => setScreen('sign-up')}
+        <Link
+          to={"/signup"}
           className="text-xs font-semibold text-[#3867F6] hover:text-[#2D55D8]"
         >
           Sign Up
-        </button>
+        </Link>
       </div>
 
       {/* Main Card */}
@@ -123,7 +132,8 @@ export const SignInScreen: React.FC = () => {
             Welcome back
           </h1>
           <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-            Sign in to continue discovering opportunities and tracking your progress.
+            Sign in to continue discovering opportunities and tracking your
+            progress.
           </p>
         </div>
 
@@ -149,13 +159,13 @@ export const SignInScreen: React.FC = () => {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (errors.email) setErrors({ ...errors, email: '' });
+                if (errors.email) setErrors({ ...errors, email: "" });
               }}
               placeholder="you@domain.com"
               className={`w-full px-3.5 py-2.5 rounded-lg border text-xs bg-white text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#3867F6]/20 ${
                 errors.email
-                  ? 'border-rose-400 focus:border-rose-500'
-                  : 'border-slate-300 focus:border-[#3867F6]'
+                  ? "border-rose-400 focus:border-rose-500"
+                  : "border-slate-300 focus:border-[#3867F6]"
               }`}
             />
             {errors.email && (
@@ -186,26 +196,30 @@ export const SignInScreen: React.FC = () => {
             </div>
             <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
-                  if (errors.password) setErrors({ ...errors, password: '' });
+                  if (errors.password) setErrors({ ...errors, password: "" });
                 }}
                 placeholder="Enter your password"
                 className={`w-full pl-3.5 pr-10 py-2.5 rounded-lg border text-xs bg-white text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#3867F6]/20 ${
                   errors.password
-                    ? 'border-rose-400 focus:border-rose-500'
-                    : 'border-slate-300 focus:border-[#3867F6]'
+                    ? "border-rose-400 focus:border-rose-500"
+                    : "border-slate-300 focus:border-[#3867F6]"
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
             {errors.password && (
@@ -290,14 +304,13 @@ export const SignInScreen: React.FC = () => {
 
         {/* Footer Link */}
         <div className="pt-2 text-center text-xs text-slate-500">
-          Don’t have an account?{' '}
-          <button
-            type="button"
-            onClick={() => setScreen('sign-up')}
+          Don’t have an account?{" "}
+          <Link
+            to={"/signup"}
             className="font-semibold text-[#3867F6] hover:text-[#2D55D8] transition-colors"
           >
             Create one
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -327,7 +340,12 @@ export const SignInScreen: React.FC = () => {
                   Recovery Email Dispatched
                 </h4>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  If an account exists for <span className="font-semibold text-slate-800">{recoveryEmail}</span>, password reset instructions have been forwarded to your inbox.
+                  If an account exists for{" "}
+                  <span className="font-semibold text-slate-800">
+                    {recoveryEmail}
+                  </span>
+                  , password reset instructions have been forwarded to your
+                  inbox.
                 </p>
                 <button
                   onClick={() => setIsForgotPasswordOpen(false)}
@@ -339,7 +357,8 @@ export const SignInScreen: React.FC = () => {
             ) : (
               <form onSubmit={handleRecoverySubmit} className="space-y-3">
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Enter your registered email address to receive password reset instructions.
+                  Enter your registered email address to receive password reset
+                  instructions.
                 </p>
                 <div>
                   <input
@@ -351,7 +370,9 @@ export const SignInScreen: React.FC = () => {
                     required
                   />
                   {recoveryError && (
-                    <p className="text-[11px] text-rose-600 mt-1">{recoveryError}</p>
+                    <p className="text-[11px] text-rose-600 mt-1">
+                      {recoveryError}
+                    </p>
                   )}
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-1">
