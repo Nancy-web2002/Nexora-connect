@@ -1,4 +1,5 @@
 import React from 'react';
+import {useNavigate} from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../ui/StatusBadge';
 import {
@@ -27,7 +28,6 @@ export const DashboardScreen: React.FC = () => {
     savedOpportunityIds,
     toggleSaveOpportunity,
     viewOpportunityDetails,
-    setScreen,
     searchQuery,
     setSearchQuery,
     setSelectedCategory,
@@ -35,14 +35,16 @@ export const DashboardScreen: React.FC = () => {
     toggleTaskCompleted,
   } = useApp();
 
+  const navigate = useNavigate();
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setScreen('discover');
+    navigate('/discover');
   };
 
   const handleCategoryClick = (categoryName: string) => {
     setSelectedCategory(categoryName);
-    setScreen('discover');
+    navigate('/discover');
   };
 
   const recommendedOpportunities = opportunities.filter((o) => o.featured || o.id === 'opp-1' || o.id === 'opp-2' || o.id === 'opp-3');
@@ -135,7 +137,7 @@ export const DashboardScreen: React.FC = () => {
               type="button"
               onClick={() => {
                 setSearchQuery('Find fully funded AI scholarships and internships for Nigerian university students');
-                setScreen('discover');
+                navigate('/discover');
               }}
               className="underline hover:text-white transition-colors"
             >
@@ -146,7 +148,7 @@ export const DashboardScreen: React.FC = () => {
               type="button"
               onClick={() => {
                 setSearchQuery('Google Africa Developer cloud vouchers');
-                setScreen('discover');
+                navigate('/discover');
               }}
               className="underline hover:text-white transition-colors"
             >
@@ -173,7 +175,7 @@ export const DashboardScreen: React.FC = () => {
             Explore by Opportunity Category
           </h3>
           <button
-            onClick={() => setScreen('discover')}
+            onClick={() => navigate('/discover')}
             className="text-xs font-semibold text-[#3867F6] hover:text-[#2D55D8] flex items-center gap-1"
           >
             <span>View All</span>
@@ -242,7 +244,7 @@ export const DashboardScreen: React.FC = () => {
               <span>Mark Complete</span>
             </button>
             <button
-              onClick={() => setScreen('action-plan')}
+              onClick={() => navigate('/action-plan')}
               className="px-4 py-2 text-xs font-semibold text-white bg-[#3867F6] hover:bg-[#2D55D8] rounded-lg transition-colors flex items-center gap-1.5"
             >
               <span>Open Action Plan</span>
@@ -266,7 +268,7 @@ export const DashboardScreen: React.FC = () => {
               </p>
             </div>
             <button
-              onClick={() => setScreen('discover')}
+              onClick={() => navigate('/discover')}
               className="text-xs font-semibold text-[#3867F6] hover:underline"
             >
               Explore all 9

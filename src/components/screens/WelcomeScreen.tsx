@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import {useNavigate} from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { ShieldCheck, Sparkles, ArrowRight, CheckCircle2, Search, Compass, BookOpen } from 'lucide-react';
 
 export const WelcomeScreen: React.FC = () => {
-  const { setScreen, updateUserProfile, setSearchQuery, setSelectedCategory, userProfile, showNotification } = useApp();
+  const { updateUserProfile, setSearchQuery, setSelectedCategory, userProfile, showNotification } = useApp();
+  const navigate = useNavigate();
 
   const [inputGoal, setInputGoal] = useState<string>(
     'Find fully funded scholarships and practical AI engineering internships'
@@ -54,7 +56,7 @@ export const WelcomeScreen: React.FC = () => {
       location: selectedRegion,
     });
     showNotification('Preferences updated. Loading personalized opportunity matches...');
-    setScreen('dashboard');
+    navigate('/dashboard');
   };
 
   return (

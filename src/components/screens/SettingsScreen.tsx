@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import {useNavigate} from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { User, ShieldCheck, Bell, Sparkles, Check, Save } from 'lucide-react';
 
 export const SettingsScreen: React.FC = () => {
-  const { userProfile, updateUserProfile, showNotification, setScreen } = useApp();
+  const { userProfile, updateUserProfile, showNotification } = useApp();
+  const navigate = useNavigate();
 
   const [name, setName] = useState(userProfile.name);
   const [email, setEmail] = useState(userProfile.email);
@@ -189,7 +191,7 @@ export const SettingsScreen: React.FC = () => {
         <div className="flex items-center justify-end gap-3">
           <button
             type="button"
-            onClick={() => setScreen('dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
           >
             Cancel

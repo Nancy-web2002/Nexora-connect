@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../ui/StatusBadge';
 import { ApplicationStage, Opportunity } from '../../types';
@@ -25,10 +26,11 @@ export const MyOpportunitiesScreen: React.FC = () => {
     setOpportunityStage,
     toggleSaveOpportunity,
     viewOpportunityDetails,
-    setScreen,
     actionTasks,
     toggleTaskCompleted,
   } = useApp();
+
+  const navigate = useNavigate();
 
   const [activeStageFilter, setActiveStageFilter] = useState<string>('All');
 
@@ -153,7 +155,7 @@ export const MyOpportunitiesScreen: React.FC = () => {
               Explore verified opportunities in the directory and click "Save Opportunity" to track deadlines and assemble requirements here.
             </p>
             <button
-              onClick={() => setScreen('discover')}
+              onClick={() => navigate('/discover')}
               className="mt-2 px-4 py-2 text-xs font-semibold bg-[#3867F6] text-white rounded-lg hover:bg-[#2D55D8] transition-colors"
             >
               Explore Verified Opportunities

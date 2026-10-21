@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate} from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge, EvidenceBadge } from '../ui/StatusBadge';
 import {
@@ -31,8 +32,9 @@ export const OpportunityDetailScreen: React.FC = () => {
     toggleSaveOpportunity,
     openEligibilityCheck,
     generateActionPlanForOpportunity,
-    setScreen,
   } = useApp();
+
+  const navigate = useNavigate();
 
   const isSaved = savedOpportunityIds.includes(selectedOpportunity.id);
 
@@ -86,7 +88,7 @@ export const OpportunityDetailScreen: React.FC = () => {
       {/* Navigation & Fast Opportunity Switcher for Demo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <button
-          onClick={() => setScreen('discover')}
+          onClick={() => navigate('/discover')}
           className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors self-start"
         >
           <ArrowLeft className="w-4 h-4" />

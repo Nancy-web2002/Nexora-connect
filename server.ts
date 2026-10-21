@@ -152,6 +152,130 @@ Would you like me to generate a tailored 4-week preparation plan for a specific 
   }
 });
 
+app.post('/api/discover', async (req, res) => {
+  const { sessionId, userProfile, query } = req.body ?? {};
+
+  if (
+  typeof sessionId !== 'string' ||
+  sessionId.trim().length < 1 ||
+  sessionId.trim().length > 64
+) {
+  return res.status(400).json({
+    status: 'failed',
+    error: {
+      code: 'INVALID_REQUEST',
+      message: 'sessionId is required and must be between 1 and 64 characters.',
+      retryable: false,
+    },
+    warnings: [],
+    opportunities: [],
+    recommendedOpportunityIds: [],
+    actionPlan: null,
+  });
+}
+
+  if (
+    typeof query !== 'string' ||
+    query.trim().length < 3 ||
+    query.trim().length > 300
+  ) {
+    return res.status(400).json({
+      status: 'failed',
+      error: {
+        code: 'INVALID_REQUEST',
+        message: 'Query must be between 3 and 300 characters.',
+        retryable: false,
+      },
+      warnings: [],
+      opportunities: [],
+      recommendedOpportunityIds: [],
+      actionPlan: null,
+    });
+  }
+
+  if (!process.env.N8N_DISCOVER_WEBHOOK_URL) {
+    return res.status(503).json({
+      status: 'failed',
+      error: {
+        code: 'WORKFLOW_NOT_CONFIGURED',
+        message: 'The discovery workflow is not configured yet.',
+        retryable: true,
+      },
+      warnings: [],
+      opportunities: [],
+      recommendedOpportunityIds: [],
+      actionPlan: null,
+    });
+  }
+
+  try {
+    const response = await fetch(
+      process.env.N8N_DISCOVER_WEBHOOK_URL,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Replace with the exact header name confirmed by the AI specialist.
+          'x-nexora-secret': process.env.N8N_WEBHOOK_SECRET ?? '',
+        },
+        body: JSON.stringify({
+          sessionId,
+          userProfile: (() => {
+  const {
+    email,
+    avatarUrl,
+    avatar_url,
+    ...safeProfile
+  } = userProfile ?? {};
+
+  return safeProfile;
+})(),
+          query: query.trim(),
+        }),
+        signal: AbortSignal.timeout(90000),
+      }
+    );
+
+    let data: any;
+
+    try {
+      data = await response.json();
+    } catch {
+      console.error('Discovery workflow returned a non-JSON response.');
+
+      return res.status(502).json({
+        status: 'failed',
+        error: {
+          code: 'WORKFLOW_INVALID_RESPONSE',
+          message: 'Opportunity discovery is temporarily unavailable. Please try again.',
+          retryable: true,
+        },
+        warnings: [],
+        opportunities: [],
+        recommendedOpportunityIds: [],
+        actionPlan: null,
+      });
+    }
+
+    return res.status(response.status).json(data);
+  } catch (error) {
+    console.error('Discovery workflow request failed:', error);
+
+    return res.status(502).json({
+      status: 'failed',
+      error: {
+        code: 'WORKFLOW_UNAVAILABLE',
+        message: 'Opportunity discovery is temporarily unavailable. Please try again.',
+        retryable: true,
+      },
+      warnings: [],
+      opportunities: [],
+      recommendedOpportunityIds: [],
+      actionPlan: null,
+    });
+  }
+});
+
 // Generate Action Plan endpoint
 app.post('/api/generate-plan', async (req: Request, res: Response) => {
   try {
