@@ -20,9 +20,12 @@ export const EligibilityModal: React.FC<EligibilityModalProps> = ({
 
   // Track user confirmation of each requirement
   const [checkedCriteria, setCheckedCriteria] = useState<Record<number, boolean>>({
-    0: true,
-    1: true,
-  });
+    });
+
+    React.useEffect(() =>{
+      setCheckedCriteria({});
+    }, [opportunity?.id]);
+    if (!isOpen || !opportunity) return null;
 
   const toggleCriterion = (index: number) => {
     setCheckedCriteria((prev) => ({

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../ui/StatusBadge';
 import { Opportunity } from '../../types';
@@ -21,6 +21,7 @@ import {
 export const DiscoveryScreen: React.FC = () => {
   const {
     opportunities,
+    userProfile,
     savedOpportunityIds,
     toggleSaveOpportunity,
     viewOpportunityDetails,
@@ -32,11 +33,14 @@ export const DiscoveryScreen: React.FC = () => {
     setSelectedVerificationStatus,
   } = useApp();
 
+  const sessionId = useRef(crypto.randomUUID()).current;
+
   const [selectedFunding, setSelectedFunding] = useState<string>('All');
   const [selectedRegion, setSelectedRegion] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'relevance' | 'deadline' | 'recent'>('relevance');
   const [isSearchingAi, setIsSearchingAi] = useState<boolean>(false);
   const [searchStep, setSearchStep] = useState<string>('');
+  const [searchError, setSearchError] = useState<string>('');
 
   const quickPresets = [
     {
@@ -71,39 +75,60 @@ export const DiscoveryScreen: React.FC = () => {
     },
   ];
 
+const runDiscoverySearch = async (query: string) => {
+    if (!query.trim()) return;
+
+    setIsSearchingAi(true);
+    setSearchError('');
+    setSearchStep('Contacting the discovery service...');
+
+    try {
+      const response = await fetch('/api/discover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          userProfile,
+          query: query.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error?.message ||
+            `Discovery request failed (${response.status}).`,
+        );
+      }
+
+      setSearchStep(
+        'Discovery service responded successfully, but its results are not  connected to the opportunity cards yet.',
+      );
+    } catch (error) {
+      setSearchError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to contact the discovery service.',
+      );
+      setSearchStep('');
+    } finally {
+      setIsSearchingAi(false);
+    }
+  };
+
   const handleRunPreset = (preset: typeof quickPresets[0]) => {
     setSearchQuery(preset.query);
     setSelectedCategory(preset.category);
     setSelectedVerificationStatus(preset.verification);
-
-    // Trigger AI gathering state
-    setIsSearchingAi(true);
-    setSearchStep('Querying verified institutional registries...');
-    setTimeout(() => {
-      setSearchStep('Cross-referencing domain certificates & fee policies...');
-    }, 450);
-    setTimeout(() => {
-      setSearchStep('Synthesizing eligibility constraints...');
-    }, 900);
-    setTimeout(() => {
-      setIsSearchingAi(false);
-      setSearchStep('');
-    }, 1300);
+    void runDiscoverySearch(preset.query);
   };
 
   const handleManualSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setIsSearchingAi(true);
-    setSearchStep('Parsing natural language criteria...');
-    setTimeout(() => {
-      setSearchStep('Scanning 9 corroborated opportunity records...');
-    }, 400);
-    setTimeout(() => {
-      setIsSearchingAi(false);
-      setSearchStep('');
-    }, 850);
+    void runDiscoverySearch(searchQuery);
   };
 
   const handleResetFilters = () => {
@@ -229,6 +254,20 @@ export const DiscoveryScreen: React.FC = () => {
             <span>Search</span>
           </button>
         </form>
+
+        {searchError && (
+          <div
+            role="alert"
+            className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+          >
+            <strong>Discovery unavailable:</strong> {searchError}
+          </div>
+        )}
+
+        {!searchError && searchStep && !isSearchingAi && (
+          <p className="text-sm text-slate-600">{searchStep}</p>
+        )}
+
 
         {/* Example Query Presets */}
         <div className="flex flex-wrap items-center gap-2">

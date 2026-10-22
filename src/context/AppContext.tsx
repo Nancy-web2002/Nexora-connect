@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {supabase} from "../lib/supabaseClient";
 import {
   Opportunity,
   ActionPlanTask,
@@ -55,16 +56,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [opportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
 
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: "Alex Adeleke",
-    email: "alex.adeleke@student.unilag.edu.ng",
-    role: "Undergraduate Scholar & Aspiring AI Engineer",
-    primaryGoal:
-      "Find fully funded scholarships and practical AI engineering internships",
-    fieldOfInterest: "Artificial Intelligence & Chemical Informatics",
+    name: "Your name",
+    email: "",
+    role: "",
+    primaryGoal: "",
+    fieldOfInterest: "",
     experienceLevel: "Undergraduate",
-    location: "Lagos, Nigeria",
-    avatarUrl: "/src/assets/images/avatar_user_alex_1791809933458.jpg",
+    location: "",
+    avatarUrl: "",
   });
+
+  useEffect(() => {
+  const syncUserProfile = (
+    user: {
+      email?: string;
+      user_metadata?: Record<string, unknown>;
+    } | null,
+  ) => {
+    if (!user) {
+      setUserProfile((prev) => ({
+        ...prev,
+        name: "Your Name",
+        email: "",
+      }));
+      return;
+    }
+
+    const metadataName = user.user_metadata?.fullName;
+
+    setUserProfile((prev) => ({
+      ...prev,
+      name:
+        typeof metadataName === "string" && metadataName.trim()
+          ? metadataName.trim()
+          : user.email?.split("@")[0] || "Your Name",
+      email: user.email || "",
+    }));
+  };
+
+  supabase.auth.getUser().then(({ data, error }) => {
+    if (!error) {
+      syncUserProfile(data.user);
+    }
+  });
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    syncUserProfile(session?.user ?? null);
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
 
   const [savedOpportunityIds, setSavedOpportunityIds] = useState<string[]>([
     "opp-1",
@@ -234,29 +279,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       id: "msg-1",
       sender: "user",
       content:
-        "I'm an Industrial Chemistry student in Nigeria. I want to build my AI skills and find fully funded learning opportunities. What should I focus on first?",
+       "Help me find credible learning and career opportunities that match my skills, goals, and experience. What information do you need from me?",
       timestamp: "Today at 09:15",
     },
     {
       id: "msg-2",
       sender: "assistant",
-      content: `Welcome, Alex! Transitioning from Industrial Chemistry into AI and computational science is a high-impact direction. Chemistry students typically possess strong analytical thinking, reaction pathway logic, and experimental discipline—all of which translate effectively into mathematical modeling.
-
-Here is your evidence-based strategic transition roadmap:
-
-1. **Leverage Your Chemical Science Advantage**:
-   * Machine learning is transforming drug discovery, materials chemistry, and polymer formulation (Cheminformatics).
-   * Rather than starting as a generic software developer, positioning yourself at the intersection of **Applied AI for Physical Sciences** gives you a distinct edge for international fellowships.
-
-2. **Verified Free Foundations to Begin This Month**:
-   * **Harvard CS50x**: Master Python, data structures, and algorithmic fundamentals (100% free open-access verified curriculum).
-   * **Google Africa Developer Scholarship (GADS)**: Confirmed cohort with mentor pods and fully subsidized Cloud & ML exam vouchers.
-
-3. **Recommended Verified Opportunities in Your Portal**:
-   * **Mastercard Foundation Scholars Program**: Fully funded graduate degree sponsorship covering tuition, living expenses, and laptops.
-   * **Deep Learning Indaba / IndabaX Fellowship**: Annual competitive grants providing fully funded travel and masterclasses.
-
-Would you like me to generate a structured 6-week preparation action plan tailored to this pathway?`,
+      content: `Welcome to Nexora Connect! I'm your AI opportunity advisor. I can help you discover relevant scholarships, training programmes, certifications, and career opportunities. Tell me about your goals, skills, experience, and location, or share an opportunity you'd like to investigate. I'll help you assess the available evidence, understand eligibility requirements, identify missing information, and decide on practical next steps.
+      Important: My assessments depend on the evidence available. Always confirm critical details through the official source before applying.`,
       timestamp: "Today at 09:16",
       recommendedOpportunityIds: ["opp-1", "opp-2", "opp-9"],
       suggestedPrompts: [
