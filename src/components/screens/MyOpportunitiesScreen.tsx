@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
-import { StatusBadge } from '../ui/StatusBadge';
-import { ApplicationStage, Opportunity } from '../../types';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppContext";
+import { StatusBadge } from "../ui/StatusBadge";
+import { ApplicationStage, Opportunity } from "../../types";
 import {
   BookMarked,
   Calendar,
@@ -16,7 +16,7 @@ import {
   FileCheck,
   Sparkles,
   AlertCircle,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const MyOpportunitiesScreen: React.FC = () => {
   const {
@@ -32,37 +32,47 @@ export const MyOpportunitiesScreen: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const [activeStageFilter, setActiveStageFilter] = useState<string>('All');
+  const [activeStageFilter, setActiveStageFilter] = useState<string>("All");
 
   // Track saved opportunities
-  const myOpportunities = opportunities.filter((o) => savedOpportunityIds.includes(o.id));
+  const myOpportunities = opportunities.filter((o) =>
+    savedOpportunityIds.includes(o.id),
+  );
 
   const filteredOpportunities = myOpportunities.filter((opp) => {
-    if (activeStageFilter === 'All') return true;
-    const currentStage = opportunityStages[opp.id] || 'saved';
+    if (activeStageFilter === "All") return true;
+    const currentStage = opportunityStages[opp.id] || "saved";
     return currentStage === activeStageFilter;
   });
 
   const stages: { id: ApplicationStage; label: string; count: number }[] = [
     {
-      id: 'saved',
-      label: 'Bookmarked / Saved',
-      count: myOpportunities.filter((o) => (opportunityStages[o.id] || 'saved') === 'saved').length,
+      id: "saved",
+      label: "Bookmarked / Saved",
+      count: myOpportunities.filter(
+        (o) => (opportunityStages[o.id] || "saved") === "saved",
+      ).length,
     },
     {
-      id: 'exploring',
-      label: 'Reviewing Evidence',
-      count: myOpportunities.filter((o) => opportunityStages[o.id] === 'exploring').length,
+      id: "exploring",
+      label: "Reviewing Evidence",
+      count: myOpportunities.filter(
+        (o) => opportunityStages[o.id] === "exploring",
+      ).length,
     },
     {
-      id: 'preparing',
-      label: 'Preparing Application',
-      count: myOpportunities.filter((o) => opportunityStages[o.id] === 'preparing').length,
+      id: "preparing",
+      label: "Preparing Application",
+      count: myOpportunities.filter(
+        (o) => opportunityStages[o.id] === "preparing",
+      ).length,
     },
     {
-      id: 'applied',
-      label: 'Application Submitted',
-      count: myOpportunities.filter((o) => opportunityStages[o.id] === 'applied').length,
+      id: "applied",
+      label: "Application Submitted",
+      count: myOpportunities.filter(
+        (o) => opportunityStages[o.id] === "applied",
+      ).length,
     },
   ];
 
@@ -77,30 +87,43 @@ export const MyOpportunitiesScreen: React.FC = () => {
             My Opportunities & Progress
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Organize bookmarked programs, track your preparation milestones, and monitor upcoming official intake deadlines.
+            Organize bookmarked programs, track your preparation milestones, and
+            monitor upcoming official intake deadlines.
           </p>
         </div>
 
         {/* Overview Stats */}
         <div className="flex items-center gap-4 bg-white border border-slate-200 rounded-xl p-3 shadow-xs shrink-0 font-mono text-xs">
           <div>
-            <span className="text-slate-500 block text-[11px]">Tracked Items</span>
+            <span className="text-slate-500 block text-[11px]">
+              Tracked Items
+            </span>
             <span className="text-base font-bold text-slate-900 tabular-nums">
               {myOpportunities.length}
             </span>
           </div>
           <div className="h-6 w-px bg-slate-200" />
           <div>
-            <span className="text-slate-500 block text-[11px]">In Preparation</span>
+            <span className="text-slate-500 block text-[11px]">
+              In Preparation
+            </span>
             <span className="text-base font-bold text-[#3867F6] tabular-nums">
-              {myOpportunities.filter((o) => opportunityStages[o.id] === 'preparing').length}
+              {
+                myOpportunities.filter(
+                  (o) => opportunityStages[o.id] === "preparing",
+                ).length
+              }
             </span>
           </div>
           <div className="h-6 w-px bg-slate-200" />
           <div>
             <span className="text-slate-500 block text-[11px]">Submitted</span>
             <span className="text-base font-bold text-emerald-600 tabular-nums">
-              {myOpportunities.filter((o) => opportunityStages[o.id] === 'applied').length}
+              {
+                myOpportunities.filter(
+                  (o) => opportunityStages[o.id] === "applied",
+                ).length
+              }
             </span>
           </div>
         </div>
@@ -109,11 +132,11 @@ export const MyOpportunitiesScreen: React.FC = () => {
       {/* Stage Filter Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
         <button
-          onClick={() => setActiveStageFilter('All')}
+          onClick={() => setActiveStageFilter("All")}
           className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-            activeStageFilter === 'All'
-              ? 'bg-slate-900 text-white'
-              : 'text-slate-600 hover:bg-slate-100'
+            activeStageFilter === "All"
+              ? "bg-slate-900 text-white"
+              : "text-slate-600 hover:bg-slate-100"
           }`}
         >
           All Tracked ({myOpportunities.length})
@@ -125,16 +148,16 @@ export const MyOpportunitiesScreen: React.FC = () => {
             onClick={() => setActiveStageFilter(stage.id)}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeStageFilter === stage.id
-                ? 'bg-[#3867F6] text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                ? "bg-[#3867F6] text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100"
             }`}
           >
             <span>{stage.label}</span>
             <span
               className={`font-mono text-[10px] px-1.5 py-0.2 rounded-sm ${
                 activeStageFilter === stage.id
-                  ? 'bg-white/20 text-white'
-                  : 'bg-slate-200 text-slate-700'
+                  ? "bg-white/20 text-white"
+                  : "bg-slate-200 text-slate-700"
               }`}
             >
               {stage.count}
@@ -152,10 +175,11 @@ export const MyOpportunitiesScreen: React.FC = () => {
               No opportunities currently in this stage
             </h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-              Explore verified opportunities in the directory and click "Save Opportunity" to track deadlines and assemble requirements here.
+              Explore verified opportunities in the directory and click "Save
+              Opportunity" to track deadlines and assemble requirements here.
             </p>
             <button
-              onClick={() => navigate('/discover')}
+              onClick={() => navigate("/discover")}
               className="mt-2 px-4 py-2 text-xs font-semibold bg-[#3867F6] text-white rounded-lg hover:bg-[#2D55D8] transition-colors"
             >
               Explore Verified Opportunities
@@ -163,7 +187,7 @@ export const MyOpportunitiesScreen: React.FC = () => {
           </div>
         ) : (
           filteredOpportunities.map((opp) => {
-            const currentStage = opportunityStages[opp.id] || 'saved';
+            const currentStage = opportunityStages[opp.id] || "saved";
 
             return (
               <div
@@ -173,7 +197,9 @@ export const MyOpportunitiesScreen: React.FC = () => {
                 {/* Header row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div className="flex flex-wrap items-center gap-2 text-slate-500 font-medium">
-                    <span className="text-slate-900 font-semibold">{opp.category}</span>
+                    <span className="text-slate-900 font-semibold">
+                      {opp.category}
+                    </span>
                     <span aria-hidden="true">·</span>
                     <span>{opp.location}</span>
                     <span aria-hidden="true">·</span>
@@ -195,17 +221,23 @@ export const MyOpportunitiesScreen: React.FC = () => {
                       {opp.title}
                     </h3>
                     <div className="text-xs text-slate-600 mt-1 font-medium">
-                      Provider: <span className="text-slate-900">{opp.provider}</span>
+                      Provider:{" "}
+                      <span className="text-slate-900">{opp.provider}</span>
                     </div>
                   </div>
 
                   {/* Stage Selector Dropdown */}
                   <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                    <span className="text-xs text-slate-500 font-medium">Stage:</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Stage:
+                    </span>
                     <select
                       value={currentStage}
                       onChange={(e) =>
-                        setOpportunityStage(opp.id, e.target.value as ApplicationStage)
+                        setOpportunityStage(
+                          opp.id,
+                          e.target.value as ApplicationStage,
+                        )
                       }
                       className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-hidden focus:border-[#3867F6]"
                     >
@@ -275,7 +307,13 @@ export const MyOpportunitiesScreen: React.FC = () => {
       <div className="p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 flex items-start gap-2.5">
         <AlertCircle className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <span className="font-bold text-slate-800">Direct Submission Protocol:</span> Nexora Connect never automatically submits applications or charges processing fees on behalf of institutions. All candidates must complete submissions directly on the verified official host portals linked above.
+          <span className="font-bold text-slate-800">
+            Direct Submission Protocol:
+          </span>{" "}
+          Nexora Connect never automatically submits applications or charges
+          processing fees on behalf of institutions. All candidates must
+          complete submissions directly on the verified official host portals
+          linked above.
         </div>
       </div>
     </div>

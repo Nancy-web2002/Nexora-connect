@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import {supabase} from "../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 import {
   Opportunity,
   ActionPlanTask,
@@ -11,6 +11,135 @@ import {
   MOCK_OPPORTUNITIES,
   INITIAL_ACTION_TASKS,
 } from "../data/mockOpportunities";
+import type { User } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
+
+/* -------------------------------------------------------------------------- */
+/*  Profile helpers (public.user_profiles <-> UserProfile)                     */
+/* -------------------------------------------------------------------------- */
+
+// Shape of a row in public.user_profiles. Everything except id is nullable
+// because the signup trigger only fills in id (and name, when available).
+interface UserProfileRow {
+  id: string;
+  name: string | null;
+  role: string | null;
+  primary_goal: string | null;
+  field_of_interest: string | null;
+  experience_level: string | null;
+  location: string | null;
+  avatar_url: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+type ExperienceLevel = UserProfile["experienceLevel"];
+
+const EXPERIENCE_LEVELS: ExperienceLevel[] = [
+  "Undergraduate",
+  "Recent Graduate",
+  "Early-Career Professional",
+  "Career Switcher",
+];
+
+// Placeholder shown until the user picks a real value. It is only written to
+// the database if the user saves it (e.g. from Settings).
+const DEFAULT_EXPERIENCE_LEVEL: ExperienceLevel = "Undergraduate";
+
+const isExperienceLevel = (value: unknown): value is ExperienceLevel =>
+  typeof value === "string" && (EXPERIENCE_LEVELS as string[]).includes(value);
+
+const escapeXml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// Used when the profile has no avatar_url, so <img src> never points at nothing.
+const makeInitialsAvatar = (name: string): string => {
+  const initials =
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "N";
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" fill="#3867F6"/><text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#ffffff">${escapeXml(initials)}</text></svg>`;
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
+const buildEmptyProfile = (): UserProfile => ({
+  name: "",
+  email: "",
+  role: "",
+  primaryGoal: "",
+  fieldOfInterest: "",
+  experienceLevel: DEFAULT_EXPERIENCE_LEVEL,
+  location: "",
+  avatarUrl: makeInitialsAvatar("Nexora User"),
+});
+
+// Convert a database row (which may be null / partially filled) into the
+// UserProfile the UI expects. Never throws on missing fields.
+const mapRowToProfile = (
+  row: Partial<UserProfileRow> | null,
+  authUser: User,
+): UserProfile => {
+  const email = authUser.email ?? "";
+  const metadata = (authUser.user_metadata ?? {}) as Record<string, unknown>;
+  const metadataName =
+    (typeof metadata.full_name === "string" && metadata.full_name) ||
+    (typeof metadata.name === "string" && metadata.name) ||
+    "";
+
+  const name =
+    row?.name?.trim() ||
+    metadataName.trim() ||
+    (email ? email.split("@")[0] : "") ||
+    "Nexora User";
+
+  return {
+    name,
+    email,
+    role: row?.role ?? "",
+    primaryGoal: row?.primary_goal ?? "",
+    fieldOfInterest: row?.field_of_interest ?? "",
+    experienceLevel: isExperienceLevel(row?.experience_level)
+      ? row.experience_level
+      : DEFAULT_EXPERIENCE_LEVEL,
+    location: row?.location ?? "",
+    avatarUrl: row?.avatar_url || makeInitialsAvatar(name),
+  };
+};
+
+// Convert a partial UI update into the matching database columns.
+// - Only fields that were actually passed are included.
+// - email is skipped: it lives in Supabase Auth, not in user_profiles.
+// - generated (data:) avatars are skipped so we never store the placeholder.
+const toDbPatch = (patch: Partial<UserProfile>): Partial<UserProfileRow> => {
+  const db: Partial<UserProfileRow> = {};
+
+  if (patch.name !== undefined) db.name = patch.name.trim() || null;
+  if (patch.role !== undefined) db.role = patch.role.trim() || null;
+  if (patch.primaryGoal !== undefined)
+    db.primary_goal = patch.primaryGoal.trim() || null;
+  if (patch.fieldOfInterest !== undefined)
+    db.field_of_interest = patch.fieldOfInterest.trim() || null;
+  if (patch.experienceLevel !== undefined)
+    db.experience_level = patch.experienceLevel;
+  if (patch.location !== undefined) db.location = patch.location.trim() || null;
+  if (patch.avatarUrl !== undefined && !patch.avatarUrl.startsWith("data:"))
+    db.avatar_url = patch.avatarUrl || null;
+
+  return db;
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Context                                                                    */
+/* -------------------------------------------------------------------------- */
 
 interface AppContextType {
   selectedOpportunityId: string;
@@ -19,7 +148,9 @@ interface AppContextType {
   viewOpportunityDetails: (id: string) => void;
   opportunities: Opportunity[];
   userProfile: UserProfile;
-  updateUserProfile: (profile: Partial<UserProfile>) => void;
+  isProfileLoading: boolean;
+  // Resolves to true when the change was saved, false if saving failed.
+  updateUserProfile: (profile: Partial<UserProfile>) => Promise<boolean>;
   savedOpportunityIds: string[];
   opportunityStages: Record<string, ApplicationStage>;
   toggleSaveOpportunity: (id: string) => void;
@@ -51,65 +182,18 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const navigate = useNavigate();
+
   const [selectedOpportunityId, setSelectedOpportunityId] =
     useState<string>("opp-1");
   const [opportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
 
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: "Your name",
-    email: "",
-    role: "",
-    primaryGoal: "",
-    fieldOfInterest: "",
-    experienceLevel: "Undergraduate",
-    location: "",
-    avatarUrl: "",
-  });
+  const [authUser, setAuthUser] = useState<User | null>(null);
 
-  useEffect(() => {
-  const syncUserProfile = (
-    user: {
-      email?: string;
-      user_metadata?: Record<string, unknown>;
-    } | null,
-  ) => {
-    if (!user) {
-      setUserProfile((prev) => ({
-        ...prev,
-        name: "Your Name",
-        email: "",
-      }));
-      return;
-    }
+  const [userProfile, setUserProfile] =
+    useState<UserProfile>(buildEmptyProfile);
 
-    const metadataName = user.user_metadata?.fullName;
-
-    setUserProfile((prev) => ({
-      ...prev,
-      name:
-        typeof metadataName === "string" && metadataName.trim()
-          ? metadataName.trim()
-          : user.email?.split("@")[0] || "Your Name",
-      email: user.email || "",
-    }));
-  };
-
-  supabase.auth.getUser().then(({ data, error }) => {
-    if (!error) {
-      syncUserProfile(data.user);
-    }
-  });
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    syncUserProfile(session?.user ?? null);
-  });
-
-  return () => {
-    subscription.unsubscribe();
-  };
-}, []);
+  const [isProfileLoading, setIsProfileLoading] = useState<boolean>(true);
 
   const [savedOpportunityIds, setSavedOpportunityIds] = useState<string[]>([
     "opp-1",
@@ -140,6 +224,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [notification, setNotification] = useState<string | null>(null);
 
+  // Auto-dismiss toast notifications
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 3500);
+    return () => clearTimeout(timer);
+  }, [notification]);
+
+  // Track the signed-in auth user
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Failed to load session:", error.message);
+        if (isMounted) setIsProfileLoading(false);
+        return;
+      }
+
+      if (isMounted) {
+        const user = data.session?.user ?? null;
+        setAuthUser(user);
+        // No session means there is no profile to wait for.
+        if (!user) setIsProfileLoading(false);
+      }
+    };
+
+    void loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Load the profile row whenever the signed-in user changes.
+  // Keyed on the user id so token refreshes don't trigger a refetch.
+  const authUserId = authUser?.id ?? null;
+
+  useEffect(() => {
+    // Signed out: clear any previous user's data.
+    if (!authUser || !authUserId) {
+      setUserProfile(buildEmptyProfile());
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      setIsProfileLoading(true);
+
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", authUserId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Failed to load profile:", error.message);
+        // Still show something sensible (name/email from auth).
+        setUserProfile(mapRowToProfile(null, authUser));
+        setIsProfileLoading(false);
+        return;
+      }
+
+      // data may be null if the signup trigger hasn't created a row yet.
+      // mapRowToProfile handles that; the row is created on first save (upsert).
+      setUserProfile(mapRowToProfile(data as UserProfileRow | null, authUser));
+      setIsProfileLoading(false);
+    };
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUserId]);
+
   const showNotification = (msg: string) => {
     setNotification(msg);
   };
@@ -150,6 +322,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const viewOpportunityDetails = (id: string) => {
     setSelectedOpportunityId(id);
+    navigate("/opportunity/details");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -264,8 +437,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const updateUserProfile = (newProps: Partial<UserProfile>) => {
+  // Updates the UI immediately, then persists to public.user_profiles.
+  // Uses upsert so it also works if the signup trigger didn't create a row.
+  // Resolves to true on success, false if the save failed (UI is rolled back).
+  const updateUserProfile = async (
+    newProps: Partial<UserProfile>,
+  ): Promise<boolean> => {
+    const previousProfile = userProfile;
+
     setUserProfile((prev) => ({ ...prev, ...newProps }));
+
+    if (!authUser) return true; // nothing to persist when signed out
+
+    const dbPatch = toDbPatch(newProps);
+    if (Object.keys(dbPatch).length === 0) return true; // e.g. email-only change
+
+    const { error } = await supabase.from("user_profiles").upsert(
+      {
+        id: authUser.id,
+        ...dbPatch,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    if (error) {
+      console.error("Failed to save profile:", error.message);
+      setUserProfile(previousProfile);
+      showNotification("Couldn't save your profile. Please try again.");
+      return false;
+    }
+
+    return true;
   };
 
   const openEligibilityCheck = (opp: Opportunity) => {
@@ -279,7 +482,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       id: "msg-1",
       sender: "user",
       content:
-       "Help me find credible learning and career opportunities that match my skills, goals, and experience. What information do you need from me?",
+        "Help me find credible learning and career opportunities that match my skills, goals, and experience. What information do you need from me?",
       timestamp: "Today at 09:15",
     },
     {
@@ -390,6 +593,7 @@ You can inspect the full evidence audit for related opportunities in the "Discov
         viewOpportunityDetails,
         opportunities,
         userProfile,
+        isProfileLoading,
         updateUserProfile,
         savedOpportunityIds,
         opportunityStages,

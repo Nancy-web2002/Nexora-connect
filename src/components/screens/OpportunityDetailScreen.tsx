@@ -1,7 +1,7 @@
-import React from 'react';
-import { useNavigate} from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
-import { StatusBadge, EvidenceBadge } from '../ui/StatusBadge';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppContext";
+import { StatusBadge, EvidenceBadge } from "../ui/StatusBadge";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -13,15 +13,13 @@ import {
   MapPin,
   CheckCircle2,
   AlertTriangle,
-  FileText,
   Building,
-  ArrowRight,
   Info,
   Clock,
   ArrowLeft,
   Check,
   Scale,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const OpportunityDetailScreen: React.FC = () => {
   const {
@@ -41,41 +39,41 @@ export const OpportunityDetailScreen: React.FC = () => {
   // Status explanation lookup
   const getStatusSummaryCard = () => {
     switch (selectedOpportunity.verificationStatus) {
-      case 'Verified':
+      case "Verified":
         return {
-          title: 'Verified Official Opportunity',
-          colorBorder: 'border-emerald-200',
-          colorBg: 'bg-emerald-50/70',
+          title: "Verified Official Opportunity",
+          colorBorder: "border-emerald-200",
+          colorBg: "bg-emerald-50/70",
           icon: ShieldCheck,
-          iconColor: 'text-emerald-600',
+          iconColor: "text-emerald-600",
           summaryText:
-            'This opportunity has been corroborated across accredited registries. Active intake is live, domain identity is authenticated, and the provider strictly adheres to a zero-fee evaluation guarantee.',
+            "This opportunity has been corroborated across accredited registries. Active intake is live, domain identity is authenticated, and the provider strictly adheres to a zero-fee evaluation guarantee.",
           legalNotice:
-            'Verification confirms institutional legitimacy and absence of known deceptive flags. It does not imply guaranteed admission or program placement.',
+            "Verification confirms institutional legitimacy and absence of known deceptive flags. It does not imply guaranteed admission or program placement.",
         };
-      case 'Partially Verified':
+      case "Partially Verified":
         return {
-          title: 'Partially Verified — Independent Caution Advised',
-          colorBorder: 'border-amber-200',
-          colorBg: 'bg-amber-50/70',
+          title: "Partially Verified — Independent Caution Advised",
+          colorBorder: "border-amber-200",
+          colorBg: "bg-amber-50/70",
           icon: ShieldAlert,
-          iconColor: 'text-amber-600',
+          iconColor: "text-amber-600",
           summaryText:
-            'The host entity is registered and authentic, but specific cohort parameters (such as co-matched budget amounts, deadline extensions, or manual intake workflows) lack multi-source corroboration.',
+            "The host entity is registered and authentic, but specific cohort parameters (such as co-matched budget amounts, deadline extensions, or manual intake workflows) lack multi-source corroboration.",
           legalNotice:
-            'Applicants should independently verify deadline dates and financial terms with their faculty sponsor or the official institution contact before committing resources.',
+            "Applicants should independently verify deadline dates and financial terms with their faculty sponsor or the official institution contact before committing resources.",
         };
-      case 'Unverified':
+      case "Unverified":
         return {
-          title: 'Unverified / Critical Deception Flags Detected',
-          colorBorder: 'border-rose-200',
-          colorBg: 'bg-rose-50/70',
+          title: "Unverified / Critical Deception Flags Detected",
+          colorBorder: "border-rose-200",
+          colorBg: "bg-rose-50/70",
           icon: ShieldX,
-          iconColor: 'text-rose-600',
+          iconColor: "text-rose-600",
           summaryText:
-            'Critical verification failures detected: Upfront fee demands for application review, recent domain registration (<60 days), unaccredited corporate claims, or absence from official vendor partner directories.',
+            "Critical verification failures detected: Upfront fee demands for application review, recent domain registration (<60 days), unaccredited corporate claims, or absence from official vendor partner directories.",
           legalNotice:
-            'High risk warning: Do NOT transfer application review fees, banking information, or sensitive identity documents to this platform.',
+            "High risk warning: Do NOT transfer application review fees, banking information, or sensitive identity documents to this platform.",
         };
     }
   };
@@ -88,7 +86,7 @@ export const OpportunityDetailScreen: React.FC = () => {
       {/* Navigation & Fast Opportunity Switcher for Demo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <button
-          onClick={() => navigate('/discover')}
+          onClick={() => navigate("/discover")}
           className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors self-start"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -97,7 +95,9 @@ export const OpportunityDetailScreen: React.FC = () => {
 
         {/* Demo Switcher: lets judges quickly inspect Verified vs Partially Verified vs Unverified */}
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 font-medium shrink-0">Demo Quick Switch:</span>
+          <span className="text-slate-500 font-medium shrink-0">
+            Demo Quick Switch:
+          </span>
           <select
             value={selectedOpportunity.id}
             onChange={(e) => setSelectedOpportunityId(e.target.value)}
@@ -117,7 +117,9 @@ export const OpportunityDetailScreen: React.FC = () => {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
-              <span className="text-slate-900 font-semibold">{selectedOpportunity.category}</span>
+              <span className="text-slate-900 font-semibold">
+                {selectedOpportunity.category}
+              </span>
               <span aria-hidden="true">·</span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
@@ -129,7 +131,10 @@ export const OpportunityDetailScreen: React.FC = () => {
                 Deadline: {selectedOpportunity.deadline}
               </span>
             </div>
-            <StatusBadge status={selectedOpportunity.verificationStatus} size="lg" />
+            <StatusBadge
+              status={selectedOpportunity.verificationStatus}
+              size="lg"
+            />
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
@@ -139,7 +144,9 @@ export const OpportunityDetailScreen: React.FC = () => {
           <div className="flex items-center gap-2 text-sm text-slate-700 font-medium">
             <Building className="w-4 h-4 text-slate-400" />
             <span>Official Provider:</span>
-            <span className="font-bold text-slate-900">{selectedOpportunity.provider}</span>
+            <span className="font-bold text-slate-900">
+              {selectedOpportunity.provider}
+            </span>
           </div>
 
           <p className="text-sm text-slate-600 leading-relaxed max-w-4xl pt-1">
@@ -207,12 +214,16 @@ export const OpportunityDetailScreen: React.FC = () => {
               onClick={() => toggleSaveOpportunity(selectedOpportunity.id)}
               className={`px-4 py-2.5 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-2 ${
                 isSaved
-                  ? 'bg-blue-50 border-blue-200 text-[#3867F6]'
-                  : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                  ? "bg-blue-50 border-blue-200 text-[#3867F6]"
+                  : "border-slate-300 text-slate-700 hover:bg-slate-50"
               }`}
             >
-              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-              <span>{isSaved ? 'Saved in My Tracker' : 'Save Opportunity'}</span>
+              <Bookmark
+                className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`}
+              />
+              <span>
+                {isSaved ? "Saved in My Tracker" : "Save Opportunity"}
+              </span>
             </button>
 
             <button
@@ -224,7 +235,9 @@ export const OpportunityDetailScreen: React.FC = () => {
             </button>
 
             <button
-              onClick={() => generateActionPlanForOpportunity(selectedOpportunity)}
+              onClick={() =>
+                generateActionPlanForOpportunity(selectedOpportunity)
+              }
               className="px-4 py-2.5 rounded-lg text-xs font-semibold bg-[#3867F6] hover:bg-[#2D55D8] text-white transition-colors flex items-center gap-2 shadow-xs"
             >
               <Sparkles className="w-4 h-4" />
@@ -245,7 +258,9 @@ export const OpportunityDetailScreen: React.FC = () => {
       </div>
 
       {/* SECTION B: Prominent Verification Summary Panel */}
-      <div className={`p-6 sm:p-7 rounded-2xl border ${statusCard.colorBorder} ${statusCard.colorBg} space-y-4`}>
+      <div
+        className={`p-6 sm:p-7 rounded-2xl border ${statusCard.colorBorder} ${statusCard.colorBg} space-y-4`}
+      >
         <div className="flex items-start gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center shrink-0">
             <StatusIcon className={`w-6 h-6 ${statusCard.iconColor}`} />
@@ -266,7 +281,9 @@ export const OpportunityDetailScreen: React.FC = () => {
         <div className="p-3.5 rounded-xl bg-white/80 border border-slate-200/60 text-xs text-slate-600 leading-relaxed flex items-start gap-2">
           <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
           <div>
-            <span className="font-semibold text-slate-800">Operational Integrity Principle:</span>{' '}
+            <span className="font-semibold text-slate-800">
+              Operational Integrity Principle:
+            </span>{" "}
             {statusCard.legalNotice}
           </div>
         </div>
@@ -310,7 +327,9 @@ export const OpportunityDetailScreen: React.FC = () => {
 
               {/* Evidence Found */}
               <div className="text-xs text-slate-700 leading-relaxed bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
-                <span className="font-semibold text-slate-900">Evidence Established: </span>
+                <span className="font-semibold text-slate-900">
+                  Evidence Established:{" "}
+                </span>
                 {check.evidence}
               </div>
 
@@ -319,7 +338,9 @@ export const OpportunityDetailScreen: React.FC = () => {
                 <div className="text-xs text-amber-900 bg-amber-50/60 p-2.5 rounded-lg border border-amber-200/70 leading-relaxed flex items-start gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-semibold">Limitation / Uncertainty: </span>
+                    <span className="font-semibold">
+                      Limitation / Uncertainty:{" "}
+                    </span>
                     {check.uncertaintyOrLimitation}
                   </div>
                 </div>
@@ -336,7 +357,8 @@ export const OpportunityDetailScreen: React.FC = () => {
             Sources & Evidence Provenance
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Primary registry entries, institutional notices, and authoritative URLs accessed by our verification agent
+            Primary registry entries, institutional notices, and authoritative
+            URLs accessed by our verification agent
           </p>
         </div>
 
@@ -346,8 +368,8 @@ export const OpportunityDetailScreen: React.FC = () => {
               key={index}
               className={`p-4 rounded-xl border transition-colors ${
                 src.isPrimary
-                  ? 'bg-blue-50/30 border-blue-200/80'
-                  : 'bg-white border-slate-200'
+                  ? "bg-blue-50/30 border-blue-200/80"
+                  : "bg-white border-slate-200"
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
@@ -373,11 +395,16 @@ export const OpportunityDetailScreen: React.FC = () => {
                 {src.title}
               </h4>
               <div className="text-xs text-slate-600 mt-0.5">
-                Publisher: <span className="font-semibold text-slate-800">{src.publisher}</span>
+                Publisher:{" "}
+                <span className="font-semibold text-slate-800">
+                  {src.publisher}
+                </span>
               </div>
 
               <p className="text-xs text-slate-600 mt-2 leading-relaxed bg-white/80 p-2.5 rounded-lg border border-slate-100">
-                <span className="font-semibold text-slate-900">Corroborates: </span>
+                <span className="font-semibold text-slate-900">
+                  Corroborates:{" "}
+                </span>
                 {src.supports}
               </p>
 

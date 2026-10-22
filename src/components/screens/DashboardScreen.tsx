@@ -1,7 +1,7 @@
-import React from 'react';
-import {useNavigate} from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
-import { StatusBadge } from '../ui/StatusBadge';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppContext";
+import { StatusBadge } from "../ui/StatusBadge";
 import {
   Search,
   Sparkles,
@@ -19,7 +19,7 @@ import {
   Compass,
   ListTodo,
   TrendingUp,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const DashboardScreen: React.FC = () => {
   const {
@@ -39,26 +39,41 @@ export const DashboardScreen: React.FC = () => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/discover');
+
+    navigate("/discover");
   };
 
   const handleCategoryClick = (categoryName: string) => {
     setSelectedCategory(categoryName);
-    navigate('/discover');
+
+    navigate("/discover");
   };
 
-  const recommendedOpportunities = opportunities.filter((o) => o.featured || o.id === 'opp-1' || o.id === 'opp-2' || o.id === 'opp-3');
+  const recommendedOpportunities = opportunities.filter(
+    (o) =>
+      o.featured || o.id === "opp-1" || o.id === "opp-2" || o.id === "opp-3",
+  );
   const recentlyVerifiedOpportunities = opportunities.slice(0, 4);
 
   const completedTasks = actionTasks.filter((t) => t.completed).length;
   const nextTask = actionTasks.find((t) => !t.completed) || actionTasks[0];
 
   const categories = [
-    { label: 'Scholarships', icon: GraduationCap, category: 'Scholarship', count: 2 },
-    { label: 'Internships', icon: Briefcase, category: 'Internship', count: 2 },
-    { label: 'Courses', icon: BookOpen, category: 'Course', count: 1 },
-    { label: 'Certifications', icon: Award, category: 'Certification', count: 2 },
-    { label: 'Mentorship', icon: Users, category: 'Mentorship', count: 1 },
+    {
+      label: "Scholarships",
+      icon: GraduationCap,
+      category: "Scholarship",
+      count: 2,
+    },
+    { label: "Internships", icon: Briefcase, category: "Internship", count: 2 },
+    { label: "Courses", icon: BookOpen, category: "Course", count: 1 },
+    {
+      label: "Certifications",
+      icon: Award,
+      category: "Certification",
+      count: 2,
+    },
+    { label: "Mentorship", icon: Users, category: "Mentorship", count: 1 },
   ];
 
   return (
@@ -68,32 +83,39 @@ export const DashboardScreen: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              Good morning, {userProfile.name.split(' ')[0]}
+              Good morning, {userProfile.name.split(" ")[0]}
             </h1>
           </div>
           <p className="text-sm text-slate-600 mt-1">
-            Track your verified applications, explore high-trust scholarships, and advance your AI roadmap.
+            Track your verified applications, explore high-trust scholarships,
+            and advance your AI roadmap.
           </p>
         </div>
 
         {/* Quick Progress Summary (Tabular figures) */}
         <div className="flex items-center gap-3 sm:gap-6 bg-white border border-slate-200/90 rounded-xl px-4 py-3 shadow-xs shrink-0">
           <div className="text-center sm:text-left">
-            <div className="text-xs text-slate-500 font-medium">Saved Items</div>
+            <div className="text-xs text-slate-500 font-medium">
+              Saved Items
+            </div>
             <div className="text-lg font-bold font-mono text-slate-900 tabular-nums">
               {savedOpportunityIds.length}
             </div>
           </div>
           <div className="h-8 w-px bg-slate-200" />
           <div className="text-center sm:text-left">
-            <div className="text-xs text-slate-500 font-medium">Active Plans</div>
+            <div className="text-xs text-slate-500 font-medium">
+              Active Plans
+            </div>
             <div className="text-lg font-bold font-mono text-slate-900 tabular-nums">
               2
             </div>
           </div>
           <div className="h-8 w-px bg-slate-200" />
           <div className="text-center sm:text-left">
-            <div className="text-xs text-slate-500 font-medium">Steps Completed</div>
+            <div className="text-xs text-slate-500 font-medium">
+              Steps Completed
+            </div>
             <div className="text-lg font-bold font-mono text-emerald-600 tabular-nums">
               {completedTasks}/{actionTasks.length}
             </div>
@@ -136,8 +158,10 @@ export const DashboardScreen: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setSearchQuery('Find fully funded AI scholarships and internships for Nigerian university students');
-                navigate('/discover');
+                setSearchQuery(
+                  "Find fully funded AI scholarships and internships for Nigerian university students",
+                );
+                navigate("/discover");
               }}
               className="underline hover:text-white transition-colors"
             >
@@ -147,8 +171,8 @@ export const DashboardScreen: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setSearchQuery('Google Africa Developer cloud vouchers');
-                navigate('/discover');
+                setSearchQuery("Google Africa Developer cloud vouchers");
+                navigate("/discover");
               }}
               className="underline hover:text-white transition-colors"
             >
@@ -175,7 +199,7 @@ export const DashboardScreen: React.FC = () => {
             Explore by Opportunity Category
           </h3>
           <button
-            onClick={() => navigate('/discover')}
+            onClick={() => navigate("/discover")}
             className="text-xs font-semibold text-[#3867F6] hover:text-[#2D55D8] flex items-center gap-1"
           >
             <span>View All</span>
@@ -223,7 +247,7 @@ export const DashboardScreen: React.FC = () => {
                 </span>
                 <span className="text-xs text-slate-400">·</span>
                 <span className="text-xs font-medium text-slate-500 font-mono tabular-nums">
-                  Due {nextTask.dueDate || 'Soon'}
+                  Due {nextTask.dueDate || "Soon"}
                 </span>
               </div>
               <h4 className="font-bold text-slate-900 text-base mt-0.5">
@@ -244,7 +268,7 @@ export const DashboardScreen: React.FC = () => {
               <span>Mark Complete</span>
             </button>
             <button
-              onClick={() => navigate('/action-plan')}
+              onClick={() => navigate("/ai-assistant?tab=plan")}
               className="px-4 py-2 text-xs font-semibold text-white bg-[#3867F6] hover:bg-[#2D55D8] rounded-lg transition-colors flex items-center gap-1.5"
             >
               <span>Open Action Plan</span>
@@ -264,11 +288,12 @@ export const DashboardScreen: React.FC = () => {
                 Recommended for You
               </h3>
               <p className="text-xs text-slate-500">
-                Matched to your profile: {userProfile.experienceLevel} · {userProfile.fieldOfInterest}
+                Matched to your profile: {userProfile.experienceLevel} ·{" "}
+                {userProfile.fieldOfInterest}
               </p>
             </div>
             <button
-              onClick={() => navigate('/discover')}
+              onClick={() => navigate("/discover")}
               className="text-xs font-semibold text-[#3867F6] hover:underline"
             >
               Explore all 9
@@ -287,11 +312,15 @@ export const DashboardScreen: React.FC = () => {
                     {/* Unboxed Metadata Header (Zero-Pill Discipline) */}
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-xs text-slate-500">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-700">{opp.category}</span>
+                        <span className="font-medium text-slate-700">
+                          {opp.category}
+                        </span>
                         <span aria-hidden="true">·</span>
                         <span>{opp.location}</span>
                         <span aria-hidden="true">·</span>
-                        <span className="font-mono tabular-nums">Deadline {opp.deadline}</span>
+                        <span className="font-mono tabular-nums">
+                          Deadline {opp.deadline}
+                        </span>
                       </div>
                       <StatusBadge status={opp.verificationStatus} size="sm" />
                     </div>
@@ -304,7 +333,8 @@ export const DashboardScreen: React.FC = () => {
                     </h4>
 
                     <div className="text-xs font-medium text-slate-600 mt-1">
-                      Provider: <span className="text-slate-900">{opp.provider}</span>
+                      Provider:{" "}
+                      <span className="text-slate-900">{opp.provider}</span>
                     </div>
 
                     <p className="text-xs text-slate-600 mt-2 line-clamp-2 leading-relaxed">
@@ -313,7 +343,9 @@ export const DashboardScreen: React.FC = () => {
 
                     {/* Funding summary */}
                     <div className="mt-3 py-2 px-3 rounded-lg bg-slate-50 text-xs text-slate-700 flex items-center gap-2 border border-slate-100">
-                      <span className="font-semibold text-slate-900 shrink-0">Funding & Benefits:</span>
+                      <span className="font-semibold text-slate-900 shrink-0">
+                        Funding & Benefits:
+                      </span>
                       <span className="truncate">{opp.funding}</span>
                     </div>
                   </div>
@@ -324,12 +356,14 @@ export const DashboardScreen: React.FC = () => {
                       onClick={() => toggleSaveOpportunity(opp.id)}
                       className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
                         isSaved
-                          ? 'bg-blue-50 border-blue-200 text-[#3867F6]'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                          ? "bg-blue-50 border-blue-200 text-[#3867F6]"
+                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
                       }`}
                     >
-                      <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
-                      <span>{isSaved ? 'Saved to Tracker' : 'Save'}</span>
+                      <Bookmark
+                        className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
+                      />
+                      <span>{isSaved ? "Saved to Tracker" : "Save"}</span>
                     </button>
 
                     <div className="flex items-center gap-2">
@@ -375,7 +409,9 @@ export const DashboardScreen: React.FC = () => {
                 <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5">
                   <span>{opp.provider}</span>
                   <span>·</span>
-                  <span className="font-mono tabular-nums">Audited {opp.lastCheckedDate}</span>
+                  <span className="font-mono tabular-nums">
+                    Audited {opp.lastCheckedDate}
+                  </span>
                 </div>
                 <div className="text-xs text-slate-600 mt-2 line-clamp-2">
                   {opp.aiExplanation}
@@ -391,7 +427,9 @@ export const DashboardScreen: React.FC = () => {
               Nexora Verification Standard
             </div>
             <p className="text-slate-600 leading-relaxed">
-              We audit SSL certificates, institutional domain ownership, and zero-fee policies. Opportunities flagged with upfront review fees are classified as Unverified to protect candidates.
+              We audit SSL certificates, institutional domain ownership, and
+              zero-fee policies. Opportunities flagged with upfront review fees
+              are classified as Unverified to protect candidates.
             </p>
           </div>
         </div>

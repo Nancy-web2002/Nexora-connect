@@ -1,21 +1,21 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext";
-import { supabase } from "@/src/lib/supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabaseClient";
 import {
   ShieldCheck,
   Eye,
   EyeOff,
   AlertCircle,
-  CheckCircle2,
   ArrowRight,
   ArrowLeft,
   Info,
 } from "lucide-react";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const SignUpScreen: React.FC = () => {
-  const { updateUserProfile, showNotification } = useApp();
+  const { showNotification } = useApp();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,7 +44,7 @@ export const SignUpScreen: React.FC = () => {
 
     if (!email.trim()) {
       newErrors.email = "Email address is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    } else if (!EMAIL_PATTERN.test(email.trim())) {
       newErrors.email = "Please enter a valid email address.";
     }
 
@@ -72,6 +72,7 @@ export const SignUpScreen: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGoogleNotice(null);
+    setSubmitError("");
 
     if (!validate()) return;
 
@@ -80,28 +81,40 @@ export const SignUpScreen: React.FC = () => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
-        password: password,
+        password,
         options: {
           data: {
-            fullName: fullName.trim(),
+            name: fullName.trim(),
           },
+          // Where the verification link sends the user. This URL must be in
+          // Supabase > Authentication > URL Configuration > Redirect URLs.
+          emailRedirectTo: `${window.location.origin}/signin`,
         },
       });
 
       if (error) {
-        setErrors({ message: error.message });
+        setSubmitError(error.message);
         return;
       }
 
-      console.log(data);
+      // With email confirmation on, Supabase does not return an error for an
+      // email that is already registered. It returns a user with no identities
+      // and sends no email, so catch it here.
+      if (data.user && data.user.identities?.length === 0) {
+        setSubmitError(
+          "An account with this email already exists. Please sign in instead.",
+        );
+        return;
+      }
 
       if (data.session) {
+        // Email confirmation is off: the user is already signed in.
         showNotification(
           `Welcome to Nexora Connect, ${fullName.trim()}! Your account has been initialized.`,
         );
-
-        navigate("/signin");
+        navigate("/welcome", { replace: true });
       } else {
+        // Email confirmation is on: ask the user to verify first.
         navigate("/verification", {
           state: { email: email.trim() },
         });
@@ -179,21 +192,29 @@ export const SignUpScreen: React.FC = () => {
         )}
 
         {submitError && (
-          <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-red-900 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-[#3867F6] shrink-0 mt-0.5" />
+          <div
+            role="alert"
+            className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-900 flex items-start gap-2.5"
+          >
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
             <div className="leading-relaxed">{submitError}</div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label
+              htmlFor="signup-name"
+              className="block text-xs font-semibold text-slate-700 mb-1.5"
+            >
               Full Name
             </label>
             <input
+              id="signup-name"
               type="text"
               value={fullName}
+              autoComplete="name"
               onChange={(e) => {
                 setFullName(e.target.value);
                 if (errors.fullName) setErrors({ ...errors, fullName: "" });
@@ -215,12 +236,17 @@ export const SignUpScreen: React.FC = () => {
 
           {/* Email Address */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label
+              htmlFor="signup-email"
+              className="block text-xs font-semibold text-slate-700 mb-1.5"
+            >
               Email Address
             </label>
             <input
+              id="signup-email"
               type="email"
               value={email}
+              autoComplete="email"
               onChange={(e) => {
                 setEmail(e.target.value);
                 if (errors.email) setErrors({ ...errors, email: "" });
@@ -242,13 +268,18 @@ export const SignUpScreen: React.FC = () => {
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label
+              htmlFor="signup-password"
+              className="block text-xs font-semibold text-slate-700 mb-1.5"
+            >
               Password
             </label>
             <div className="relative">
               <input
+                id="signup-password"
                 type={showPassword ? "text" : "password"}
                 value={password}
+                autoComplete="new-password"
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (errors.password) setErrors({ ...errors, password: "" });
@@ -283,13 +314,18 @@ export const SignUpScreen: React.FC = () => {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label
+              htmlFor="signup-confirm-password"
+              className="block text-xs font-semibold text-slate-700 mb-1.5"
+            >
               Confirm Password
             </label>
             <div className="relative">
               <input
+                id="signup-confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
+                autoComplete="new-password"
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   if (errors.confirmPassword)
@@ -342,11 +378,11 @@ export const SignUpScreen: React.FC = () => {
               />
               <span className="text-xs text-slate-600 leading-relaxed">
                 I agree to the{" "}
-                <span className="text-slate-900 font-semibold hover:underline">
+                <span className="text-slate-900 font-semibold">
                   Terms of Service
                 </span>{" "}
                 and{" "}
-                <span className="text-slate-900 font-semibold hover:underline">
+                <span className="text-slate-900 font-semibold">
                   Privacy Policy
                 </span>
                 .

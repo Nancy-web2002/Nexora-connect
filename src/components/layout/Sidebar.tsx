@@ -1,7 +1,7 @@
 import React from "react";
 import { useApp } from "../../context/AppContext";
-import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/src/lib/supabaseClient";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabaseClient";
 import {
   LayoutDashboard,
   Compass,
@@ -25,6 +25,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { userProfile, savedOpportunityIds, actionTasks } = useApp();
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isPlanTab =
+    location.pathname === "/ai-assistant" &&
+    new URLSearchParams(location.search).get("tab") === "plan";
 
   const completedTasksCount = actionTasks.filter((t) => t.completed).length;
 
@@ -43,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
     { id: "/ai-assistant", label: "AI Assistant", icon: BotMessageSquare },
     {
-      id: "/action-plan",
+      id: "/ai-assistant?tab=plan",
       label: "My Action Plan",
       icon: ListTodo,
       badge: `${completedTasksCount}/${actionTasks.length}`,
@@ -135,7 +140,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.id;
+            const isActive =
+              item.id === "/ai-assistant?tab=plan"
+                ? isPlanTab
+                : item.id === "/ai-assistant"
+                  ? location.pathname === "/ai-assistant" && !isPlanTab
+                  : location.pathname === item.id;
             return (
               <button
                 key={item.id}
@@ -171,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* User Profile Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/60">
           <div
-            onClick={() => handleNavClick("settings")}
+            onClick={() => handleNavClick("/settings")}
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/70 cursor-pointer transition-colors"
           >
             <img

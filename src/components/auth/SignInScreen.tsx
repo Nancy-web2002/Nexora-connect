@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import { useApp } from "../../context/AppContext";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
   Eye,
@@ -13,14 +12,13 @@ import {
   X,
   KeyRound,
 } from "lucide-react";
-import { supabase } from "@/src/lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const SignInScreen: React.FC = () => {
-  const { updateUserProfile, showNotification, userProfile } = useApp();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -32,23 +30,42 @@ export const SignInScreen: React.FC = () => {
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoverySent, setRecoverySent] = useState(false);
   const [recoveryError, setRecoveryError] = useState("");
-  const [notification, setNotification] = useState<string>("");
+  const [isRecoveryLoading, setIsRecoveryLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ProtectedRoute can pass the page the user originally wanted
+  const from = (
+    location.state as { from?: { pathname: string; search?: string } } | null
+  )?.from;
+  const destination = from
+    ? `${from.pathname}${from.search ?? ""}`
+    : "/dashboard";
+
+  // Close the recovery modal with Escape
+  useEffect(() => {
+    if (!isForgotPasswordOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsForgotPasswordOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isForgotPasswordOpen]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
     if (!email.trim()) {
       newErrors.email = "Email address is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    } else if (!EMAIL_PATTERN.test(email.trim())) {
       newErrors.email = "Please enter a valid email address.";
     }
 
+    // Only require a value here. Length rules belong to sign-up / reset,
+    // otherwise existing users with older passwords get blocked client-side.
     if (!password) {
       newErrors.password = "Password is required.";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters.";
     }
 
     setErrors(newErrors);
@@ -66,20 +83,31 @@ export const SignInScreen: React.FC = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) {
+        const code = (error as { code?: string }).code;
+
+        // Account exists but the email was never confirmed:
+        // send them to the verification page so they can resend the link.
+        if (
+          code === "email_not_confirmed" ||
+          /not confirmed/i.test(error.message)
+        ) {
+          navigate("/verification", { state: { email: email.trim() } });
+          return;
+        }
+
         setErrors({ message: error.message });
         return;
       }
 
       if (data.session) {
-        navigate("/dashboard");
+        // The user profile is loaded by AppContext when the session changes.
+        navigate(destination, { replace: true });
       }
-
-      setNotification(`Signed in successfully as ${data.user.email}`);
     } catch (error) {
       setErrors({
         message:
@@ -98,25 +126,27 @@ export const SignInScreen: React.FC = () => {
     );
   };
 
+  const openRecovery = () => {
+    setRecoveryEmail(email);
+    setRecoverySent(false);
+    setRecoveryError("");
+    setIsForgotPasswordOpen(true);
+  };
+
   const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setRecoveryError("");
 
-    if (
-      !recoveryEmail.trim() ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim())
-    ) {
+    if (!recoveryEmail.trim() || !EMAIL_PATTERN.test(recoveryEmail.trim())) {
       setRecoveryError("Please enter a valid email address.");
       return;
     }
 
-    setIsLoading(true);
+    setIsRecoveryLoading(true);
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(
         recoveryEmail.trim(),
-
         { redirectTo: `${window.location.origin}/signin/resetpassword` },
       );
 
@@ -124,10 +154,6 @@ export const SignInScreen: React.FC = () => {
         setRecoveryError(error.message);
         return;
       }
-
-      setNotification(
-        "If an account exists for that email, you will receive a password reset link. Check your inbox and spam folder.",
-      );
 
       setRecoverySent(true);
     } catch (error) {
@@ -137,7 +163,7 @@ export const SignInScreen: React.FC = () => {
           : "Something went wrong. Please try again.",
       );
     } finally {
-      setIsLoading(false);
+      setIsRecoveryLoading(false);
     }
   };
 
@@ -199,21 +225,29 @@ export const SignInScreen: React.FC = () => {
         )}
 
         {errors.message && (
-          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-900 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-[#3867F6] shrink-0 mt-0.5" />
+          <div
+            role="alert"
+            className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-900 flex items-start gap-2.5"
+          >
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
             <div className="leading-relaxed">{errors.message}</div>
           </div>
         )}
 
-        <form onSubmit={handleSignIn} className="space-y-4">
+        <form onSubmit={handleSignIn} noValidate className="space-y-4">
           {/* Email Address */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label
+              className="block text-xs font-semibold text-slate-700 mb-1.5"
+              htmlFor="signin-email"
+            >
               Email Address
             </label>
             <input
               type="email"
+              id="signin-email"
               value={email}
+              autoComplete="email"
               onChange={(e) => {
                 setEmail(e.target.value);
                 if (errors.email) setErrors({ ...errors, email: "" });
@@ -236,16 +270,15 @@ export const SignInScreen: React.FC = () => {
           {/* Password */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-700">
+              <label
+                htmlFor="signin-password"
+                className="block text-xs font-semibold text-slate-700"
+              >
                 Password
               </label>
               <button
                 type="button"
-                onClick={() => {
-                  setRecoveryEmail(email);
-                  setRecoverySent(false);
-                  setIsForgotPasswordOpen(true);
-                }}
+                onClick={openRecovery}
                 className="text-xs text-[#3867F6] hover:text-[#2D55D8] font-medium"
               >
                 Forgot password?
@@ -253,8 +286,10 @@ export const SignInScreen: React.FC = () => {
             </div>
             <div className="relative">
               <input
+                id="signin-password"
                 type={showPassword ? "text" : "password"}
                 value={password}
+                autoComplete="current-password"
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (errors.password) setErrors({ ...errors, password: "" });
@@ -285,19 +320,6 @@ export const SignInScreen: React.FC = () => {
                 <span>{errors.password}</span>
               </p>
             )}
-          </div>
-
-          {/* Remember Me Checkbox */}
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded text-[#3867F6] focus:ring-[#3867F6]/20 border-slate-300"
-              />
-              <span className="text-xs text-slate-600">Remember me</span>
-            </label>
           </div>
 
           {/* Submit Button */}
@@ -373,15 +395,25 @@ export const SignInScreen: React.FC = () => {
 
       {/* Forgot Password Recovery Modal */}
       {isForgotPasswordOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="recovery-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+        >
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+              <div
+                id="recovery-title"
+                className="flex items-center gap-2 text-sm font-bold text-slate-900"
+              >
                 <KeyRound className="w-4 h-4 text-[#3867F6]" />
                 <span>Password Recovery</span>
               </div>
               <button
+                type="button"
                 onClick={() => setIsForgotPasswordOpen(false)}
+                aria-label="Close password recovery"
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               >
                 <X className="w-4 h-4" />
@@ -389,27 +421,26 @@ export const SignInScreen: React.FC = () => {
             </div>
 
             {recoverySent ? (
-              <div className="space-y-3 py-2 text-center">
-                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <h4 className="text-sm font-bold text-slate-900">
-                  Recovery Email Dispatched
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  If an account exists for{" "}
-                  <span className="font-semibold text-slate-800">
-                    {recoveryEmail}
-                  </span>
-                  , password reset instructions have been forwarded to your
-                  inbox.
-                </p>
-                <button
-                  onClick={() => setIsForgotPasswordOpen(false)}
-                  className="w-full mt-2 py-2 px-4 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+              <div className="space-y-4">
+                <div
+                  role="status"
+                  className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2.5"
                 >
-                  Return to Sign In
-                </button>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    If an account exists for that email, you will receive a
+                    password reset link. Check your inbox and spam folder.
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPasswordOpen(false)}
+                    className="px-4 py-1.5 text-xs font-semibold bg-[#3867F6] text-white rounded-lg hover:bg-[#2D55D8] transition-colors"
+                  >
+                    Back to sign in
+                  </button>
+                </div>
               </div>
             ) : (
               <form
@@ -422,16 +453,27 @@ export const SignInScreen: React.FC = () => {
                   instructions.
                 </p>
                 <div>
+                  <label
+                    htmlFor="recovery-email"
+                    className="block text-xs font-semibold text-slate-700 mb-1.5"
+                  >
+                    Email Address
+                  </label>
                   <input
+                    id="recovery-email"
                     type="email"
                     value={recoveryEmail}
+                    autoComplete="email"
                     onChange={(e) => setRecoveryEmail(e.target.value)}
                     placeholder="you@domain.com"
                     className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 text-slate-900 focus:outline-hidden focus:border-[#3867F6]"
                     required
                   />
                   {recoveryError && (
-                    <p className="text-[11px] text-rose-600 mt-1">
+                    <p
+                      role="alert"
+                      className="text-[11px] text-rose-600 mt-1 font-medium"
+                    >
                       {recoveryError}
                     </p>
                   )}
@@ -446,9 +488,10 @@ export const SignInScreen: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 text-xs font-semibold bg-[#3867F6] text-white rounded-lg hover:bg-[#2D55D8] transition-colors"
+                    disabled={isRecoveryLoading}
+                    className="px-4 py-1.5 text-xs font-semibold bg-[#3867F6] text-white rounded-lg hover:bg-[#2D55D8] transition-colors disabled:opacity-60"
                   >
-                    Send Reset Link
+                    {isRecoveryLoading ? "Sending..." : "Send Reset Link"}
                   </button>
                 </div>
               </form>

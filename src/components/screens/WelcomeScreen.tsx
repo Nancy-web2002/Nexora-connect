@@ -1,47 +1,94 @@
-import React, { useState } from 'react';
-import {useNavigate} from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
-import { ShieldCheck, Sparkles, ArrowRight, CheckCircle2, Search, Compass, BookOpen } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppContext";
+import {
+  ShieldCheck,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  Search,
+  Compass,
+  BookOpen,
+} from "lucide-react";
 
 export const WelcomeScreen: React.FC = () => {
-  const { updateUserProfile, setSearchQuery, setSelectedCategory, userProfile, showNotification } = useApp();
+  const {
+    updateUserProfile,
+    setSearchQuery,
+    setSelectedCategory,
+    userProfile,
+    showNotification,
+  } = useApp();
   const navigate = useNavigate();
 
   const [inputGoal, setInputGoal] = useState<string>(
-    'Find fully funded scholarships and practical AI engineering internships'
+    "Find fully funded scholarships and practical AI engineering internships",
   );
   const [selectedExperience, setSelectedExperience] = useState<
-    'Undergraduate' | 'Recent Graduate' | 'Early-Career Professional' | 'Career Switcher'
+    | "Undergraduate"
+    | "Recent Graduate"
+    | "Early-Career Professional"
+    | "Career Switcher"
   >(userProfile.experienceLevel);
   const [selectedField, setSelectedField] = useState<string>(
-    'Artificial Intelligence & Chemical Informatics'
+    "Artificial Intelligence & Chemical Informatics",
   );
-  const [selectedRegion, setSelectedRegion] = useState<string>('Nigeria / Africa');
+  const [selectedRegion, setSelectedRegion] =
+    useState<string>("Nigeria / Africa");
 
   const goalSuggestions = [
-    { label: 'Find a scholarship', category: 'Scholarship', query: 'fully funded scholarship' },
-    { label: 'Learn AI and technology', category: 'Course', query: 'artificial intelligence machine learning' },
-    { label: 'Find an internship', category: 'Internship', query: 'paid software internship' },
-    { label: 'Discover free certifications', category: 'Certification', query: 'free cloud certification voucher' },
-    { label: 'Find a mentor', category: 'Mentorship', query: 'mentorship network' },
+    {
+      label: "Find a scholarship",
+      category: "Scholarship",
+      query: "fully funded scholarship",
+    },
+    {
+      label: "Learn AI and technology",
+      category: "Course",
+      query: "artificial intelligence machine learning",
+    },
+    {
+      label: "Find an internship",
+      category: "Internship",
+      query: "paid software internship",
+    },
+    {
+      label: "Discover free certifications",
+      category: "Certification",
+      query: "free cloud certification voucher",
+    },
+    {
+      label: "Find a mentor",
+      category: "Mentorship",
+      query: "mentorship network",
+    },
   ];
 
-  const experienceOptions: Array<'Undergraduate' | 'Recent Graduate' | 'Early-Career Professional' | 'Career Switcher'> = [
-    'Undergraduate',
-    'Recent Graduate',
-    'Early-Career Professional',
-    'Career Switcher',
+  const experienceOptions: Array<
+    | "Undergraduate"
+    | "Recent Graduate"
+    | "Early-Career Professional"
+    | "Career Switcher"
+  > = [
+    "Undergraduate",
+    "Recent Graduate",
+    "Early-Career Professional",
+    "Career Switcher",
   ];
 
   const fieldOptions = [
-    'Artificial Intelligence & Chemical Informatics',
-    'Software Engineering & Cloud',
-    'Data Science & Analytics',
-    'Applied Chemistry & Renewable Tech',
-    'Product Management & Design',
+    "Artificial Intelligence & Chemical Informatics",
+    "Software Engineering & Cloud",
+    "Data Science & Analytics",
+    "Applied Chemistry & Renewable Tech",
+    "Product Management & Design",
   ];
 
-  const handleApplyChip = (item: { label: string; category: string; query: string }) => {
+  const handleApplyChip = (item: {
+    label: string;
+    category: string;
+    query: string;
+  }) => {
     setInputGoal(item.label);
     setSelectedCategory(item.category);
     setSearchQuery(item.query);
@@ -55,8 +102,10 @@ export const WelcomeScreen: React.FC = () => {
       fieldOfInterest: selectedField,
       location: selectedRegion,
     });
-    showNotification('Preferences updated. Loading personalized opportunity matches...');
-    navigate('/dashboard');
+    showNotification(
+      "Preferences updated. Loading personalized opportunity matches...",
+    );
+    navigate("/dashboard");
   };
 
   return (
@@ -83,7 +132,10 @@ export const WelcomeScreen: React.FC = () => {
             Your next opportunity starts here.
           </h2>
           <p className="text-base text-slate-600 leading-relaxed max-w-2xl">
-            Nexora Connect cross-references official portals, identifies zero-fee guarantees, verifies active intake periods, and builds actionable step-by-step roadmaps so you never fall for unverified claims.
+            Nexora Connect cross-references official portals, identifies
+            zero-fee guarantees, verifies active intake periods, and builds
+            actionable step-by-step roadmaps so you never fall for unverified
+            claims.
           </p>
         </div>
 
@@ -123,7 +175,9 @@ export const WelcomeScreen: React.FC = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               {goalSuggestions.map((item, idx) => {
-                const isSelected = inputGoal.toLowerCase().includes(item.label.toLowerCase());
+                const isSelected = inputGoal
+                  .toLowerCase()
+                  .includes(item.label.toLowerCase());
                 return (
                   <button
                     key={idx}
@@ -131,8 +185,8 @@ export const WelcomeScreen: React.FC = () => {
                     onClick={() => handleApplyChip(item)}
                     className={`text-xs px-3 py-1.5 rounded-lg transition-colors font-medium ${
                       isSelected
-                        ? 'bg-[#3867F6] text-white shadow-xs'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? "bg-[#3867F6] text-white shadow-xs"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-700"
                     }`}
                   >
                     {item.label}
@@ -186,15 +240,20 @@ export const WelcomeScreen: React.FC = () => {
               Target Region
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {['Nigeria / Africa', 'Global / Remote', 'North America', 'Europe'].map((reg) => (
+              {[
+                "Nigeria / Africa",
+                "Global / Remote",
+                "North America",
+                "Europe",
+              ].map((reg) => (
                 <button
                   key={reg}
                   type="button"
                   onClick={() => setSelectedRegion(reg)}
                   className={`px-3 py-2 text-xs rounded-lg border text-center transition-colors font-medium truncate ${
                     selectedRegion === reg
-                      ? 'border-[#3867F6] bg-blue-50 text-[#3867F6]'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                      ? "border-[#3867F6] bg-blue-50 text-[#3867F6]"
+                      : "border-slate-200 text-slate-600 hover:border-slate-300"
                   }`}
                 >
                   {reg}
@@ -207,7 +266,10 @@ export const WelcomeScreen: React.FC = () => {
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-slate-500 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Evidence-based verification with direct official source citations</span>
+              <span>
+                Evidence-based verification with direct official source
+                citations
+              </span>
             </div>
             <button
               type="submit"
@@ -226,7 +288,8 @@ export const WelcomeScreen: React.FC = () => {
               Zero Hallucinated Legitimacy
             </div>
             <div className="text-xs text-slate-500 leading-relaxed">
-              Every status is backed by verifiable domain registration, corporate records, and active calls.
+              Every status is backed by verifiable domain registration,
+              corporate records, and active calls.
             </div>
           </div>
           <div className="p-4 rounded-xl bg-white/70 border border-slate-200/60">
@@ -234,7 +297,8 @@ export const WelcomeScreen: React.FC = () => {
               Official Source Transparency
             </div>
             <div className="text-xs text-slate-500 leading-relaxed">
-              Direct links to primary universities, foundations, and employers—never intermediary scam traps.
+              Direct links to primary universities, foundations, and
+              employers—never intermediary scam traps.
             </div>
           </div>
           <div className="p-4 rounded-xl bg-white/70 border border-slate-200/60">
@@ -242,7 +306,8 @@ export const WelcomeScreen: React.FC = () => {
               Personalized Action Execution
             </div>
             <div className="text-xs text-slate-500 leading-relaxed">
-              Turn complex application requirements into realistic weekly milestones and track them effortlessly.
+              Turn complex application requirements into realistic weekly
+              milestones and track them effortlessly.
             </div>
           </div>
         </div>

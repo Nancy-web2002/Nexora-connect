@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Opportunity } from '../../types';
-import { useApp } from '../../context/AppContext';
-import { Check, X, AlertCircle, ShieldCheck, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Opportunity } from "../../types";
+import { useApp } from "../../context/AppContext";
+import { Check, X, AlertCircle, ShieldCheck, Sparkles } from "lucide-react";
 
 interface EligibilityModalProps {
   opportunity: Opportunity | null;
@@ -14,18 +14,19 @@ export const EligibilityModal: React.FC<EligibilityModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { userProfile, generateActionPlanForOpportunity, showNotification } = useApp();
+  const { userProfile, generateActionPlanForOpportunity } = useApp();
+
+  // Track user confirmation of each requirement.
+  // Hooks must run before any early return (Rules of Hooks).
+  const [checkedCriteria, setCheckedCriteria] = useState<
+    Record<number, boolean>
+  >({});
+  // Reset the checklist whenever a different opportunity is being assessed
+  useEffect(() => {
+    setCheckedCriteria({});
+  }, [opportunity?.id]);
 
   if (!isOpen || !opportunity) return null;
-
-  // Track user confirmation of each requirement
-  const [checkedCriteria, setCheckedCriteria] = useState<Record<number, boolean>>({
-    });
-
-    React.useEffect(() =>{
-      setCheckedCriteria({});
-    }, [opportunity?.id]);
-    if (!isOpen || !opportunity) return null;
 
   const toggleCriterion = (index: number) => {
     setCheckedCriteria((prev) => ({
@@ -35,9 +36,12 @@ export const EligibilityModal: React.FC<EligibilityModalProps> = ({
   };
 
   const totalCriteria = opportunity.eligibility.length;
-  const metCriteriaCount = opportunity.eligibility.filter((_, idx) => checkedCriteria[idx]).length;
+  const metCriteriaCount = opportunity.eligibility.filter(
+    (_, idx) => checkedCriteria[idx],
+  ).length;
   const isFullyEligible = metCriteriaCount === totalCriteria;
-  const isPartiallyEligible = metCriteriaCount > 0 && metCriteriaCount < totalCriteria;
+  const isPartiallyEligible =
+    metCriteriaCount > 0 && metCriteriaCount < totalCriteria;
 
   const handleGeneratePlan = () => {
     onClose();
@@ -73,14 +77,20 @@ export const EligibilityModal: React.FC<EligibilityModalProps> = ({
         {/* User Context Banner */}
         <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs text-slate-600">
           <div>
-            Comparing against profile: <span className="font-semibold text-slate-800">{userProfile.name}</span> ({userProfile.experienceLevel}, {userProfile.location})
+            Comparing against profile:{" "}
+            <span className="font-semibold text-slate-800">
+              {userProfile.name}
+            </span>{" "}
+            ({userProfile.experienceLevel}, {userProfile.location})
           </div>
         </div>
 
         {/* Content: Requirements Checklist */}
         <div className="p-6 space-y-4">
           <p className="text-xs text-slate-600 leading-relaxed">
-            Verify each official requirement below to assess your qualification profile before applying. Check the box if you currently meet the criteria:
+            Verify each official requirement below to assess your qualification
+            profile before applying. Check the box if you currently meet the
+            criteria:
           </p>
 
           <div className="space-y-3">
@@ -92,15 +102,15 @@ export const EligibilityModal: React.FC<EligibilityModalProps> = ({
                   onClick={() => toggleCriterion(idx)}
                   className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-start gap-3 select-none ${
                     isChecked
-                      ? 'bg-blue-50/50 border-blue-200 text-slate-900'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                      ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                      : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                   }`}
                 >
                   <div
                     className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center shrink-0 border ${
                       isChecked
-                        ? 'bg-[#3867F6] border-[#3867F6] text-white'
-                        : 'border-slate-300 bg-white'
+                        ? "bg-[#3867F6] border-[#3867F6] text-white"
+                        : "border-slate-300 bg-white"
                     }`}
                   >
                     {isChecked && <Check className="w-3.5 h-3.5" />}
@@ -117,42 +127,52 @@ export const EligibilityModal: React.FC<EligibilityModalProps> = ({
           <div
             className={`p-4 rounded-lg border mt-6 ${
               isFullyEligible
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                ? "bg-emerald-50 border-emerald-200 text-emerald-900"
                 : isPartiallyEligible
-                ? 'bg-amber-50 border-amber-200 text-amber-900'
-                : 'bg-rose-50 border-rose-200 text-rose-900'
+                  ? "bg-amber-50 border-amber-200 text-amber-900"
+                  : "bg-rose-50 border-rose-200 text-rose-900"
             }`}
           >
             <div className="flex items-center gap-2 font-semibold text-sm">
               {isFullyEligible ? (
                 <>
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Strong Eligibility Match ({metCriteriaCount}/{totalCriteria} Criteria Met)</span>
+                  <span>
+                    Strong Eligibility Match ({metCriteriaCount}/{totalCriteria}{" "}
+                    Criteria Met)
+                  </span>
                 </>
               ) : isPartiallyEligible ? (
                 <>
                   <AlertCircle className="w-4 h-4 text-amber-600" />
-                  <span>Partial Eligibility Profile ({metCriteriaCount}/{totalCriteria} Criteria Met)</span>
+                  <span>
+                    Partial Eligibility Profile ({metCriteriaCount}/
+                    {totalCriteria} Criteria Met)
+                  </span>
                 </>
               ) : (
                 <>
                   <AlertCircle className="w-4 h-4 text-rose-600" />
-                  <span>Prerequisites Unmet (0/{totalCriteria} Criteria Met)</span>
+                  <span>
+                    Prerequisites Unmet (0/{totalCriteria} Criteria Met)
+                  </span>
                 </>
               )}
             </div>
             <p className="text-xs mt-1.5 leading-relaxed opacity-90">
               {isFullyEligible
-                ? 'Your background strongly satisfies published intake criteria. We recommend initiating your application packet and scheduling referee recommendations immediately.'
+                ? "Your background strongly satisfies published intake criteria. We recommend initiating your application packet and scheduling referee recommendations immediately."
                 : isPartiallyEligible
-                ? 'You satisfy key baseline qualifications, but some criteria remain unconfirmed. Generate an action plan to address specific prerequisite gaps.'
-                : 'You may not currently meet the mandatory thresholds. Consider foundational skill courses or alternative cohort intakes.'}
+                  ? "You satisfy key baseline qualifications, but some criteria remain unconfirmed. Generate an action plan to address specific prerequisite gaps."
+                  : "You may not currently meet the mandatory thresholds. Consider foundational skill courses or alternative cohort intakes."}
             </p>
           </div>
 
           {/* Disclaimer */}
           <p className="text-[11px] text-slate-500 italic">
-            Note: Nexora eligibility evaluations are advisory and based on available public guidelines. Official selection committees reserve sole discretion.
+            Note: Nexora eligibility evaluations are advisory and based on
+            available public guidelines. Official selection committees reserve
+            sole discretion.
           </p>
         </div>
 

@@ -1,13 +1,5 @@
 import React from "react";
-import { useApp } from "../../context/AppContext";
-import {
-  Menu,
-  Search,
-  Sparkles,
-  ShieldCheck,
-  ExternalLink,
-  ArrowRight,
-} from "lucide-react";
+import { Menu, Sparkles, ArrowRight } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 interface HeaderProps {
@@ -15,11 +7,17 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const { searchQuery, setSearchQuery } = useApp();
-
   const location = useLocation();
 
+  const isPlanTab =
+    location.pathname === "/ai-assistant" &&
+    new URLSearchParams(location.search).get("tab") === "plan";
+
   const getBreadcrumbs = () => {
+    if (isPlanTab) {
+      return ["Action Plan", "Interactive Milestones & Tasks"];
+    }
+
     switch (location.pathname) {
       case "/":
         return ["Nexora Connect", "Get Started"];
@@ -37,8 +35,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         return ["Opportunities", "Evidence Audit & Verification"];
       case "/ai-assistant":
         return ["AI Advisory", "Community Chat & Recommendations"];
-      case "/action-plan":
-        return ["Action Plan", "Interactive Milestones & Tasks"];
       case "/opportunity":
         return ["Tracker", "Saved Opportunities & Deadlines"];
       case "/settings":
@@ -96,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         <Link
           to={"/ai-assistant"}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap ${
-            location.pathname === "/ai-assistant"
+            location.pathname === "/ai-assistant" && !isPlanTab
               ? "text-[#3867F6] font-semibold"
               : ""
           }`}
@@ -104,11 +100,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           AI Advisor
         </Link>
         <Link
-          to={"/action-plan"}
+          to={"/ai-assistant?tab=plan"}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap ${
-            location.pathname === "/action-plan"
-              ? "text-[#3867F6] font-semibold"
-              : ""
+            isPlanTab ? "text-[#3867F6] font-semibold" : ""
           }`}
         >
           Action Plan

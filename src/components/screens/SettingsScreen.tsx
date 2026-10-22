@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import {useNavigate} from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
-import { User, ShieldCheck, Bell, Sparkles, Check, Save } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppContext";
+import { Bell, Save } from "lucide-react";
 
 export const SettingsScreen: React.FC = () => {
   const { userProfile, updateUserProfile, showNotification } = useApp();
@@ -11,25 +11,28 @@ export const SettingsScreen: React.FC = () => {
   const [email, setEmail] = useState(userProfile.email);
   const [role, setRole] = useState(userProfile.role);
   const [primaryGoal, setPrimaryGoal] = useState(userProfile.primaryGoal);
-  const [fieldOfInterest, setFieldOfInterest] = useState(userProfile.fieldOfInterest);
-  const [experienceLevel, setExperienceLevel] = useState(userProfile.experienceLevel);
+  const [fieldOfInterest, setFieldOfInterest] = useState(
+    userProfile.fieldOfInterest,
+  );
+  const [experienceLevel, setExperienceLevel] = useState(
+    userProfile.experienceLevel,
+  );
   const [location, setLocation] = useState(userProfile.location);
 
   const [notifyDeadlines, setNotifyDeadlines] = useState(true);
   const [notifyStatusChanges, setNotifyStatusChanges] = useState(true);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateUserProfile({
+    const ok = await updateUserProfile({
       name,
-      email,
       role,
       primaryGoal,
       fieldOfInterest,
       experienceLevel,
       location,
     });
-    showNotification('Profile and verification preferences saved.');
+    if (ok) showNotification("Profile and verification preferences saved.");
   };
 
   return (
@@ -39,7 +42,8 @@ export const SettingsScreen: React.FC = () => {
           Account & Discovery Settings
         </h1>
         <p className="text-sm text-slate-600 mt-1">
-          Customize your academic background, career trajectory, and verification alerts.
+          Customize your academic background, career trajectory, and
+          verification alerts.
         </p>
       </div>
 
@@ -100,7 +104,9 @@ export const SettingsScreen: React.FC = () => {
               >
                 <option value="Undergraduate">Undergraduate</option>
                 <option value="Recent Graduate">Recent Graduate</option>
-                <option value="Early-Career Professional">Early-Career Professional</option>
+                <option value="Early-Career Professional">
+                  Early-Career Professional
+                </option>
                 <option value="Career Switcher">Career Switcher</option>
               </select>
             </div>
@@ -163,7 +169,8 @@ export const SettingsScreen: React.FC = () => {
                   Approaching Intake Deadline Reminders
                 </div>
                 <div className="text-slate-500">
-                  Notify me 14 days and 7 days prior to verified application cutoff dates.
+                  Notify me 14 days and 7 days prior to verified application
+                  cutoff dates.
                 </div>
               </div>
             </label>
@@ -180,7 +187,8 @@ export const SettingsScreen: React.FC = () => {
                   Verification Status Audits
                 </div>
                 <div className="text-slate-500">
-                  Alert me if any tracked program updates its intake window or budget allocation.
+                  Alert me if any tracked program updates its intake window or
+                  budget allocation.
                 </div>
               </div>
             </label>
@@ -191,7 +199,7 @@ export const SettingsScreen: React.FC = () => {
         <div className="flex items-center justify-end gap-3">
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate("/dashboard")}
             className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
           >
             Cancel
