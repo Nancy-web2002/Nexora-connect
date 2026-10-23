@@ -1,10 +1,52 @@
 import express, { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
+import { createClient } from '@supabase/supabase-js';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import {
+  saveOpportunityPreference,
+  getOpportunityPreferences,
+} from './src/services/preferenceMemory.ts';
 
 dotenv.config();
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY');
+}
+
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
+
+async function getAuthenticatedUser(req: Request) {
+  const authorization = req.headers.authorization;
+
+  if (!authorization?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authorization.slice('Bearer '.length).trim();
+
+  if (!token) {
+    return null;
+  }
+
+  const { data, error } = await supabaseAuth.auth.getUser(token);
+
+  if (error || !data.user) {
+    return null;
+  }
+
+  return data.user;
+}
 
 const app = express();
 app.use(express.json());
@@ -153,6 +195,23 @@ Would you like me to generate a tailored 4-week preparation plan for a specific 
 });
 
 app.post('/api/discover', async (req, res) => {
+  const authenticatedUser = await getAuthenticatedUser(req);
+
+  if (!authenticatedUser) {
+    return res.status(401).json({
+      status: 'failed',
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Please sign in to discover opportunities.',
+        retryable: false,
+      },
+      warnings: [],
+      opportunities: [],
+      recommendedOpportunityIds: [],
+      actionPlan: null,
+    });
+  }
+
   const { sessionId, userProfile, query } = req.body ?? {};
 
   if (
@@ -346,6 +405,54 @@ app.post('/api/generate-plan', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+
+// H-MEM: save an explicit opportunity preference for the authenticated user.
+app.post('/api/memory/preferences', async (req: Request, res: Response) => {
+  try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Please sign in first.' });
+    }
+
+    const preference = req.body?.preference;
+    if (typeof preference !== 'string' || !preference.trim() || preference.trim().length > 500) {
+      return res.status(400).json({
+        error: 'preference must contain between 1 and 500 characters.',
+      });
+    }
+
+    const saved = saveOpportunityPreference(user.id, preference);
+    return res.status(201).json({ success: true, preference: saved });
+  } catch (error) {
+    console.error('Error saving H-MEM preference:', error);
+    return res.status(500).json({ error: 'Could not save preference.' });
+  }
+});
+
+// H-MEM: retrieve relevant preferences belonging only to the authenticated user.
+app.get('/api/memory/preferences', async (req: Request, res: Response) => {
+  try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Please sign in first.' });
+    }
+
+    const query = req.query.query;
+    if (query !== undefined && (typeof query !== 'string' || query.length > 200)) {
+      return res.status(400).json({ error: 'query must be at most 200 characters.' });
+    }
+
+    const result = getOpportunityPreferences(
+      user.id,
+      typeof query === 'string' && query.trim() ? query.trim() : 'opportunity preferences',
+    );
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Error retrieving H-MEM preferences:', error);
+    return res.status(500).json({ error: 'Could not retrieve preferences.' });
   }
 });
 

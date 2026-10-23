@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { supabase } from '@/src/lib/supabaseClient';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../ui/StatusBadge';
 import { Opportunity } from '../../types';
@@ -83,11 +84,21 @@ const runDiscoverySearch = async (query: string) => {
     setSearchStep('Contacting the discovery service...');
 
     try {
-      const response = await fetch('/api/discover', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+     const {
+  data: { session },
+  error: sessionError,
+} = await supabase.auth.getSession();
+
+if (sessionError || !session?.access_token) {
+  throw new Error('Please sign in again to discover opportunities.');
+}
+
+const response = await fetch('/api/discover', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${session.access_token}`,
+  },
         body: JSON.stringify({
           sessionId,
           userProfile,
