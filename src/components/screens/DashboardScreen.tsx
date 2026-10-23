@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext";
+import campusInnovationImage from "../../assets/images/campus_innovation_lab_1791809943504.jpg";
 import { StatusBadge } from "../ui/StatusBadge";
 import {
   Search,
@@ -184,9 +185,8 @@ export const DashboardScreen: React.FC = () => {
         {/* Decorative corner image with subtle overlay */}
         <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-80 opacity-25 mix-blend-luminosity pointer-events-none">
           <img
-            src="/src/assets/images/campus_innovation_lab_1791809943504.jpg"
+            src={campusInnovationImage}
             alt="Campus Innovation"
-            referrerPolicy="no-referrer"
             className="w-full h-full object-cover"
           />
         </div>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function ProtectedRoute() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const location = useLocation();
 
   useEffect(() => {
     let mounted = true;
@@ -34,7 +36,7 @@ export default function ProtectedRoute() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/signin" replace />;
+    return <Navigate to="/signin" replace state={{ from: location }} />;
   }
 
   return <Outlet />;

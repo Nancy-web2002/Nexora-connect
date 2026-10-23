@@ -26,6 +26,7 @@ export const AIAssistantScreen: React.FC = () => {
     chatMessages,
     sendChatMessage,
     isAiTyping,
+    chatError,
     opportunities,
     viewOpportunityDetails,
     actionTasks,
@@ -244,6 +245,19 @@ export const AIAssistantScreen: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {chatError && (
+              <div
+                role="alert"
+                className="mx-4 mb-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-semibold">AI response unavailable</p>
+                  <p className="mt-1">{chatError}</p>
+                </div>
+              </div>
+            )}
 
             {/* Chat Input */}
             <form

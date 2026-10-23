@@ -163,6 +163,7 @@ interface AppContextType {
   chatMessages: ChatMessage[];
   sendChatMessage: (content: string) => Promise<void>;
   isAiTyping: boolean;
+  chatError: string | null;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   selectedCategory: string;
@@ -274,6 +275,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     // Signed out: clear any previous user's data.
     if (!authUser || !authUserId) {
       setUserProfile(buildEmptyProfile());
+      setIsProfileLoading(false);
       return;
     }
 
@@ -501,10 +503,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   ]);
 
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   const sendChatMessage = async (content: string) => {
     if (!content.trim()) return;
-
+    setChatError(null);
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       sender: "user",
@@ -556,29 +559,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setChatMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
-      console.warn(
-        "Backend call failed, using intelligent fallback response",
-        err,
+      console.error("AI chat request failed:", err);
+
+      setChatError(
+        "I couldn't get a response from the AI service. Your message was not answered. Please check your connection and try again.",
       );
-      // Fallback response
-      const fallbackReply = `I evaluated your question: "${content}".
-
-Based on verified records for university students and early-career tech candidates in our database:
-
-• **Prioritize Official Intakes**: Never proceed with opportunities that lack direct institutional domains (.edu, official foundation portals) or require upfront fee deposits.
-• **Corroborate Deadlines**: Always verify the active intake calendar directly on the official host website.
-• **Take Immediate Action**: Add this milestone to your Nexora Action Plan so you can track application requirements systematically.
-
-You can inspect the full evidence audit for related opportunities in the "Discover" tab.`;
-
-      const assistantMsg: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
-        sender: "assistant",
-        content: fallbackReply,
-        timestamp: "Just now",
-        recommendedOpportunityIds: ["opp-1", "opp-2"],
-      };
-      setChatMessages((prev) => [...prev, assistantMsg]);
     } finally {
       setIsAiTyping(false);
     }
@@ -607,6 +592,7 @@ You can inspect the full evidence audit for related opportunities in the "Discov
         chatMessages,
         sendChatMessage,
         isAiTyping,
+        chatError,
         searchQuery,
         setSearchQuery,
         selectedCategory,

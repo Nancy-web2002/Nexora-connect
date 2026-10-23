@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext";
 import { Bell, Save } from "lucide-react";
 
-export const SettingsScreen: React.FC = () => {
+const SettingsForm: React.FC = () => {
   const { userProfile, updateUserProfile, showNotification } = useApp();
   const navigate = useNavigate();
 
@@ -88,6 +88,7 @@ export const SettingsScreen: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly
                 className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-slate-300 text-slate-900 focus:outline-hidden focus:border-[#3867F6]"
                 required
               />
@@ -215,4 +216,14 @@ export const SettingsScreen: React.FC = () => {
       </form>
     </div>
   );
+};
+
+export const SettingsScreen: React.FC = () => {
+  const { isProfileLoading } = useApp();
+
+  if (isProfileLoading) {
+    return <p>Loading your profile...</p>;
+  }
+
+  return <SettingsForm />;
 };
