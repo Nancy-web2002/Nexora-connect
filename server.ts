@@ -74,122 +74,202 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// AI Chat endpoint
+// AI Chat endpoint — forwards to the n8n workflow
 app.post('/api/chat', async (req: Request, res: Response) => {
+  const body = req.body ?? {};
+  const { message, history, context } = body;
+  const sessionId = body.sessionId;
+
+  const fallbackReply =
+    'I can help you assess opportunities and plan next steps, but the AI workflow is temporarily unavailable. Please try again shortly and verify important details through official sources.';
+
+  if (
+    typeof message !== 'string' ||
+    message.trim().length < 1 ||
+    message.length > 2000
+  ) {
+    return res.status(400).json({
+      reply: 'Please enter a message between 1 and 2000 characters.',
+      suggestedPrompts: [],
+      readyToDiscover: false,
+      generatedBy: 'nexora-fallback',
+    });
+  }
+
+  if (
+    typeof sessionId !== 'string' ||
+    sessionId.trim().length < 1 ||
+    sessionId.trim().length > 64
+  ) {
+    return res.status(400).json({
+      reply: 'Your chat session is missing. Please refresh the page and try again.',
+      suggestedPrompts: [],
+      readyToDiscover: false,
+      generatedBy: 'nexora-fallback',
+    });
+  }
+
+  const webhookUrl = process.env.N8N_CHAT_WEBHOOK_URL;
+  const webhookSecret = process.env.N8N_WEBHOOK_SECRET;
+
+  if (!webhookUrl || !webhookSecret) {
+    console.error('Chat workflow is not configured: webhook URL or secret is missing.');
+    return res.json({
+      reply: fallbackReply,
+      suggestedPrompts: ['Find opportunities for me', 'Help me clarify my career goal'],
+      readyToDiscover: false,
+      generatedBy: 'nexora-fallback',
+    });
+  }
+
+  const safeProfile = (() => {
+    const profile = context?.userProfile;
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+      return undefined;
+    }
+
+    const {
+      email,
+      avatarUrl,
+      avatar_url,
+      ...safe
+    } = profile as Record<string, unknown>;
+
+    return safe;
+  })();
+
+  const safeHistory = Array.isArray(history)
+    ? history
+        .filter(
+          (item: any) =>
+            item &&
+            (item.role === 'user' || item.role === 'model') &&
+            typeof item.content === 'string'
+        )
+        .slice(-6)
+        .map((item: any) => ({
+          role: item.role,
+          content: item.content.slice(0, 2000),
+        }))
+    : [];
+
   try {
-    const { message, history, context } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
-
-    if (ai) {
-      const systemInstruction = `
-You are the AI Strategic Advisor for Nexora Connect, an AI-powered community support and opportunity verification platform.
-Your mission:
-1. Understand the user's specific background, goals, skills, and constraints (e.g. university students, career switchers, regional origin such as Nigeria or elsewhere).
-2. Recommend practical, credible opportunities and learning steps.
-3. Rigorously evaluate evidence: clearly state what is verified vs unverified vs unknown.
-4. Never make up fake partnerships or false guarantees. Emphasize that users must confirm eligibility on official source links.
-5. Provide structured, actionable, and encouraging guidance with numbered milestones and realistic timelines.
-Keep tone professional, empathetic, candid, and concise.
-`;
-
-      const contents = [
-        ...(Array.isArray(history)
-          ? history.map((h: { role: string; content: string }) => ({
-              role: h.role === 'user' ? 'user' : 'model',
-              parts: [{ text: h.content }],
-            }))
-          : []),
-        {
-          role: 'user',
-          parts: [
-            {
-              text: `Context: ${JSON.stringify(context || {})}\n\nUser Question: ${message}`,
-            },
-          ],
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-nexora-secret': webhookSecret,
+      },
+      body: JSON.stringify({
+        sessionId: sessionId.trim(),
+        message: message.trim(),
+        history: safeHistory,
+        context: {
+          ...(safeProfile ? { userProfile: safeProfile } : {}),
+          ...(typeof context?.activeOpportunity === 'string'
+            ? { activeOpportunity: context.activeOpportunity.slice(0, 500) }
+            : {}),
         },
-      ];
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents,
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        },
+    if (response.status === 400) {
+      console.error('Chat workflow rejected the request with HTTP 400.');
+      return res.json({
+        reply: fallbackReply,
+        suggestedPrompts: ['Find opportunities for me'],
+        readyToDiscover: false,
+        generatedBy: 'nexora-fallback',
       });
-
-      const reply = response.text || 'I analyzed your request. Here are the recommended next steps based on available verified sources.';
-      return res.json({ reply, generatedBy: 'gemini-3.8-flash' });
     }
 
-    // High quality intelligent response when GEMINI_API_KEY is not set or running offline
-    let intelligentReply = '';
-    const lower = message.toLowerCase();
-
-    if (lower.includes('chemistry') || lower.includes('nigeria') || lower.includes('transition')) {
-      intelligentReply = `### Strategic Transition Plan: From Industrial Chemistry to AI & Data Systems
-
-Transitioning from Industrial Chemistry to Artificial Intelligence is a high-leverage move. Chemistry gives you strong mathematical intuition, analytical experimental discipline, and systems thinking.
-
-#### 1. Foundation Phase (Weeks 1–3)
-* **Master Core Python & Numerical Libraries**: Focus on NumPy, Pandas, and basic vector arithmetic. Chemical kinetics and stoichiometry map directly to matrix transformations.
-* **Verified Free Resource**: *Kaggle Python & Data Analysis Micro-Courses* (100% free, interactive browser environment, zero setup required).
-
-#### 2. Applied Computational Skills (Weeks 4–7)
-* **Apply Machine Learning to Cheminformatics / Science**:
-  * Predict molecular solubility or reaction yields using open datasets (e.g., MoleculeNet or PubChem benchmarks).
-  * Build a portfolio project that bridges your chemistry domain with predictive modeling.
-
-#### 3. Target Verified Fully Funded Opportunities (Weeks 8–12)
-* **African Development Bank & Microsoft Coding Academy**: Fully funded virtual scholarship cohorts for sub-Saharan tech scholars.
-* **Deep Learning Indaba / IndabaX Nigeria**: Annual computational fellowship providing travel grants, mentorship, and workshops.
-* **Google Africa Developer Scholarship (GADS / Pluralsight)**: Confirmed cohort-based free certified learning track.
-
-**Evidence Notice**: While these programs run recurring cohorts, intake cycles vary seasonally. Always confirm active submission dates via the official institution portals linked in your Nexora tracker.`;
-    } else if (lower.includes('scholarship') || lower.includes('fund')) {
-      intelligentReply = `### Curated Assessment: Funded Tech & Academic Opportunities
-
-When pursuing scholarships, verification of direct institutional intake and zero fee policies is essential.
-
-#### Key Recommended Pathways:
-1. **Mastercard Foundation Scholars Program**:
-   * *Status*: Verified Institutional Partner.
-   * *Coverage*: 100% full tuition, living stipend, laptop grant, and mentorship.
-   * *Verification Check*: Confirmed direct intake through accredited partner universities (e.g., KNUST, AIMS, Edinburgh). Never applies through third-party agents.
-
-2. **DAAD Helmut-Schmidt Program & Development Scholarships**:
-   * *Status*: Verified Bilateral Academic Grant.
-   * *Coverage*: Full monthly stipend (€934/mo), travel allowance, health insurance.
-   * *Limitation*: Requires certified academic transcripts and verified English proficiency.
-
-3. **Commonwealth Shared Scholarship**:
-   * *Status*: Verified Intergovernmental Award.
-   * *Application Window*: Opens annually November–December for following academic year.
-
-*Safety Verification*: Genuine scholarship funds never charge application fees or processing deposits. If any portal requests payment for review, mark it as Unverified in your Nexora portal immediately.`;
-    } else {
-      intelligentReply = `### Personalized Opportunity Recommendation
-
-Based on your profile and query, here is an evaluation of relevant pathways and verified resources:
-
-1. **Clarify Target Domain**: Align your specific career trajectory (e.g., Machine Learning Engineering, Cloud Infrastructure, Data Analysis).
-2. **Select Accredited Open-Access Learning**: Prioritize verified institutional courses such as Harvard CS50x or MIT OpenCourseWare for recognized technical rigor.
-3. **Evidence-Based Application Strategy**:
-   * Verify official institutional domain (.edu, .org, or official corporate careers portal).
-   * Cross-reference deadline dates with university consortium bulletins.
-   * Generate an action plan using the Action Plan tab to track weekly milestones.
-
-Would you like me to generate a tailored 4-week preparation plan for a specific scholarship or internship program?`;
+    if (response.status === 401 || response.status === 403) {
+      console.error('Chat workflow authentication failed. Check server-side secret configuration.');
+      return res.json({
+        reply: fallbackReply,
+        suggestedPrompts: ['Find opportunities for me'],
+        readyToDiscover: false,
+        generatedBy: 'nexora-fallback',
+      });
     }
 
-    return res.json({ reply: intelligentReply, generatedBy: 'nexora-synthesis-engine' });
-  } catch (error: any) {
-    console.error('Error in /api/chat:', error);
-    return res.status(500).json({
-      error: 'An error occurred while generating the assistant response.',
-      details: error.message,
+    if (!response.ok) {
+      console.error(`Chat workflow returned HTTP ${response.status}.`);
+      return res.json({
+        reply: fallbackReply,
+        suggestedPrompts: ['Find opportunities for me'],
+        readyToDiscover: false,
+        generatedBy: 'nexora-fallback',
+      });
+    }
+
+    let data: any;
+    try {
+      data = await response.json();
+    } catch {
+      console.error('Chat workflow returned a non-JSON response.');
+      return res.json({
+        reply: fallbackReply,
+        suggestedPrompts: ['Find opportunities for me'],
+        readyToDiscover: false,
+        generatedBy: 'nexora-fallback',
+      });
+    }
+
+    if (
+      !data ||
+      typeof data.reply !== 'string' ||
+      !['ok', 'partial', 'failed'].includes(data.status)
+    ) {
+      console.error('Chat workflow response did not match the expected contract.');
+      return res.json({
+        reply: fallbackReply,
+        suggestedPrompts: ['Find opportunities for me'],
+        readyToDiscover: false,
+        generatedBy: 'nexora-fallback',
+      });
+    }
+
+    if (data.status === 'failed') {
+      return res.json({
+        reply: fallbackReply,
+        suggestedPrompts: Array.isArray(data.suggestedPrompts)
+          ? data.suggestedPrompts.filter((p: unknown) => typeof p === 'string').slice(0, 3)
+          : ['Find opportunities for me'],
+        readyToDiscover: false,
+        generatedBy: 'nexora-fallback',
+      });
+    }
+
+    return res.json({
+      reply: data.reply,
+      suggestedPrompts: Array.isArray(data.suggestedPrompts)
+        ? data.suggestedPrompts.filter((p: unknown) => typeof p === 'string').slice(0, 3)
+        : [],
+      readyToDiscover: data.readyToDiscover === true,
+      generatedBy: 'n8n-nemotron',
+      meta: data.meta,
+      status: data.status,
+    });
+   } catch (error) {
+    const timedOut =
+      error instanceof Error &&
+      (error.name === 'TimeoutError' || error.name === 'AbortError');
+
+    console.error(
+      timedOut
+        ? 'Chat workflow timed out.'
+        : 'Chat workflow request failed:',
+      error instanceof Error
+        ? { name: error.name, message: error.message }
+        : 'Unknown error',
+    );
+    return res.json({
+      reply: fallbackReply,
+      suggestedPrompts: ['Find opportunities for me'],
+      readyToDiscover: false,
+      generatedBy: 'nexora-fallback',
     });
   }
 });

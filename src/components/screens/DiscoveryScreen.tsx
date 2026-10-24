@@ -209,7 +209,9 @@ const response = await fetch('/api/discover', {
       })
       .sort((a, b) => {
         if (sortBy === 'deadline') {
-          return a.deadlineTimestamp - b.deadlineTimestamp;
+         if (a.deadlineTimestamp === null) return 1;
+if (b.deadlineTimestamp === null) return -1;
+return a.deadlineTimestamp - b.deadlineTimestamp;
         }
         if (sortBy === 'recent') {
           return b.id.localeCompare(a.id);

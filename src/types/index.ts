@@ -28,7 +28,8 @@ export interface OpportunitySource {
     | "Academic Consortium Registry"
     | "Government / Ministry Notice"
     | "Accreditation Body"
-    | "Direct Corporate Careers";
+    | "Direct Corporate Careers"
+    | "Third-Party Listing";
   publisher: string;
   dateAccessed: string;
   supports: string;
@@ -52,7 +53,7 @@ export interface Opportunity {
     | "Remote";
   eligibility: string[];
   deadline: string;
-  deadlineTimestamp: number;
+  deadlineTimestamp: number | null;
   verificationStatus: VerificationStatus;
   lastCheckedDate: string;
   officialUrl: string;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
   Opportunity,
@@ -478,6 +478,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsEligibilityModalOpen(true);
   };
 
+  const chatSessionId = useRef(crypto.randomUUID());
+
   // Chat conversation state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -505,13 +507,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
+  
   const sendChatMessage = async (content: string) => {
-    if (!content.trim()) return;
+    const message = content.trim();
+    if (!message) return;
+
     setChatError(null);
+
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       sender: "user",
-      content: content.trim(),
+      content: message,
       timestamp: "Just now",
     };
 
@@ -523,46 +529,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: content,
+          sessionId: chatSessionId.current,
+          message,
           history: chatMessages.slice(-6).map((m) => ({
             role: m.sender === "user" ? "user" : "model",
             content: m.content,
           })),
           context: {
-            userProfile,
+            userProfile: {
+              name: userProfile.name,
+              role: userProfile.role,
+              primaryGoal: userProfile.primaryGoal,
+              fieldOfInterest: userProfile.fieldOfInterest,
+              experienceLevel: userProfile.experienceLevel,
+              location: userProfile.location,
+            },
             activeOpportunity: selectedOpportunity.title,
           },
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(
+          typeof data.reply === "string"
+            ? data.reply
+            : `Chat request failed: HTTP ${response.status}`,
+        );
       }
 
-      const data = await response.json();
       const assistantMsg: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
+        id: `msg-${Date.now()}-assistant`,
         sender: "assistant",
-        content: data.reply,
+        content:
+          typeof data.reply === "string" && data.reply.trim()
+            ? data.reply
+            : "I couldn't generate a response. Please try again.",
         timestamp: "Just now",
         recommendedOpportunityIds:
-          content.toLowerCase().includes("scholarship") ||
-          content.toLowerCase().includes("fund")
+          message.toLowerCase().includes("scholarship") ||
+          message.toLowerCase().includes("fund")
             ? ["opp-1", "opp-3"]
             : ["opp-2", "opp-5"],
-        suggestedPrompts: [
-          "Add these steps to my Action Plan",
-          "Check my eligibility for this program",
-          "What are the red flags of fake opportunities?",
-        ],
+        suggestedPrompts: Array.isArray(data.suggestedPrompts)
+          ? data.suggestedPrompts
+              .filter(
+                (prompt: unknown): prompt is string =>
+                  typeof prompt === "string",
+              )
+              .slice(0, 3)
+          : [],
       };
 
       setChatMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
       console.error("AI chat request failed:", err);
-
       setChatError(
-        "I couldn't get a response from the AI service. Your message was not answered. Please check your connection and try again.",
+        err instanceof Error
+          ? err.message
+          : "I couldn't get a response from the AI service.",
       );
     } finally {
       setIsAiTyping(false);
