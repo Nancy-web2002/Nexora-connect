@@ -42,6 +42,7 @@ export const DiscoveryScreen: React.FC = () => {
   const [sortBy, setSortBy] = useState<'relevance' | 'deadline' | 'recent'>('relevance');
   const [isSearchingAi, setIsSearchingAi] = useState<boolean>(false);
   const [searchStep, setSearchStep] = useState<string>('');
+  const [hasSubmittedSearch, setHasSubmittedSearch] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>('');
 
   const quickPresets = [
@@ -80,6 +81,7 @@ export const DiscoveryScreen: React.FC = () => {
 const runDiscoverySearch = async (query: string) => {
     if (!query.trim()) return;
 
+    setHasSubmittedSearch(true);
     setIsSearchingAi(true);
     setSearchError('');
     setSearchStep('Contacting the discovery service...');
@@ -121,6 +123,29 @@ const response = await fetch('/api/discover', {
 }
 
 setOpportunities(data.opportunities as Opportunity[]);
+console.log('[Nexora discovery diagnostic]', {
+  query: query.trim(),
+  httpStatus: response.status,
+  status: data.status,
+  opportunityCount: data.opportunities.length,
+  warnings: data.warnings,
+  firstOpportunity: data.opportunities[0],
+  activeFilters: {
+    category: selectedCategory,
+    verification: selectedVerificationStatus,
+    region: selectedRegion,
+    funding: selectedFunding,
+  },
+});
+console.log('Discovery response:', data);
+console.log('Returned opportunities:', data.opportunities);
+console.log('Active filters:', {
+  searchQuery,
+  selectedCategory,
+  selectedVerificationStatus,
+  selectedRegion,
+  selectedFunding,
+});
 setSearchQuery('');
 
 const warningCount = Array.isArray(data.warnings)
@@ -146,12 +171,17 @@ setSearchStep(
     }
   };
 
-  const handleRunPreset = (preset: typeof quickPresets[0]) => {
-    setSearchQuery(preset.query);
-    setSelectedCategory(preset.category);
-    setSelectedVerificationStatus(preset.verification);
-    void runDiscoverySearch(preset.query);
-  };
+ const handleRunPreset = (preset: typeof quickPresets[0]) => {
+  setSearchQuery(preset.query);
+
+  // Let the discovery results display without stale filters.
+  setSelectedCategory('All');
+  setSelectedVerificationStatus('All');
+  setSelectedRegion('All');
+  setSelectedFunding('All');
+
+  void runDiscoverySearch(preset.query);
+};
 
   const handleManualSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +300,8 @@ return a.deadlineTimestamp - b.deadlineTimestamp;
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value);
+             setSearchStep(''); }}
             placeholder="Type natural language query (e.g. Find fully funded AI scholarships and internships for Nigerian university students)..."
             className="w-full pl-11 pr-32 py-3.5 rounded-xl border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-hidden focus:ring-2 focus:ring-[#3867F6]/20 focus:border-[#3867F6]"
           />
@@ -400,7 +431,10 @@ return a.deadlineTimestamp - b.deadlineTimestamp;
 
       {/* Search Results List */}
       <div className="space-y-4">
-        {filteredOpportunities.length === 0 ? (
+      {filteredOpportunities.length === 0 &&
+        hasSubmittedSearch &&
+        !isSearchingAi &&
+        !searchError ? (
           <div className="p-12 text-center bg-white rounded-xl border border-slate-200">
             <Info className="w-8 h-8 text-slate-400 mx-auto mb-3" />
             <h3 className="text-base font-bold text-slate-800">
