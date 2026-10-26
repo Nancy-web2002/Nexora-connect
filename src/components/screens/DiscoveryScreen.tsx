@@ -22,6 +22,7 @@ import {
 export const DiscoveryScreen: React.FC = () => {
   const {
     opportunities,
+    setOpportunities,
     userProfile,
     savedOpportunityIds,
     toggleSaveOpportunity,
@@ -115,9 +116,24 @@ const response = await fetch('/api/discover', {
         );
       }
 
-      setSearchStep(
-        'Discovery service responded successfully, but its results are not  connected to the opportunity cards yet.',
-      );
+      if (!Array.isArray(data?.opportunities)) {
+  throw new Error('The discovery service returned an invalid opportunities list.');
+}
+
+setOpportunities(data.opportunities as Opportunity[]);
+setSearchQuery('');
+
+const warningCount = Array.isArray(data.warnings)
+  ? data.warnings.length
+  : 0;
+
+setSearchStep(
+  `${data.opportunities.length} opportunities returned. ${
+    data.status === 'partial' || warningCount > 0
+      ? `${warningCount} warnings reported. Review each opportunity's evidence before applying.`
+      : 'Review the verification evidence before applying.'
+  }`,
+);
     } catch (error) {
       setSearchError(
         error instanceof Error
@@ -155,7 +171,7 @@ const response = await fetch('/api/discover', {
     return opportunities
       .filter((opp) => {
         // Search query match
-        if (searchQuery.trim()) {
+      if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchesTitle = opp.title.toLowerCase().includes(q);
           const matchesProvider = opp.provider.toLowerCase().includes(q);

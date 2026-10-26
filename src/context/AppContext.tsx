@@ -7,10 +7,7 @@ import {
   UserProfile,
   ApplicationStage,
 } from "../types";
-import {
-  MOCK_OPPORTUNITIES,
-  INITIAL_ACTION_TASKS,
-} from "../data/mockOpportunities";
+import { MOCK_OPPORTUNITIES } from "../data/mockOpportunities";
 import type { User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 
@@ -147,6 +144,7 @@ interface AppContextType {
   selectedOpportunity: Opportunity;
   viewOpportunityDetails: (id: string) => void;
   opportunities: Opportunity[];
+  setOpportunities: (opportunities: Opportunity[]) => void;
   userProfile: UserProfile;
   isProfileLoading: boolean;
   // Resolves to true when the change was saved, false if saving failed.
@@ -187,7 +185,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [selectedOpportunityId, setSelectedOpportunityId] =
     useState<string>("opp-1");
-  const [opportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
+ const [opportunities, setOpportunities] =
+  useState<Opportunity[]>(MOCK_OPPORTUNITIES);
 
   const [authUser, setAuthUser] = useState<User | null>(null);
 
@@ -210,8 +209,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     "opp-5": "saved",
   });
 
-  const [actionTasks, setActionTasks] =
-    useState<ActionPlanTask[]>(INITIAL_ACTION_TASKS);
+ const [actionTasks, setActionTasks] = useState<ActionPlanTask[]>([]);
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -270,6 +268,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   // Load the profile row whenever the signed-in user changes.
   // Keyed on the user id so token refreshes don't trigger a refetch.
   const authUserId = authUser?.id ?? null;
+  const [tasksLoadedForUser, setTasksLoadedForUser] = useState<string | null>(
+  null,
+);
+
+// Load saved tasks whenever the signed-in user changes.
+useEffect(() => {
+  if (!authUserId) {
+    setActionTasks([]);
+    setTasksLoadedForUser(null);
+    return;
+  }
+
+  try {
+    const storedTasks = localStorage.getItem(
+      `nexora-action-tasks-${authUserId}`,
+    );
+
+    if (storedTasks) {
+      const parsedTasks: unknown = JSON.parse(storedTasks);
+
+      if (Array.isArray(parsedTasks)) {
+        setActionTasks(parsedTasks as ActionPlanTask[]);
+      } else {
+        setActionTasks([]);
+      }
+    } else {
+      setActionTasks([]);
+    }
+  } catch (error) {
+    console.error("Failed to load saved action tasks:", error);
+    setActionTasks([]);
+  }
+
+  setTasksLoadedForUser(authUserId);
+}, [authUserId]);
+
+// Save tasks for the current signed-in user.
+useEffect(() => {
+  if (!authUserId || tasksLoadedForUser !== authUserId) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      `nexora-action-tasks-${authUserId}`,
+      JSON.stringify(actionTasks),
+    );
+  } catch (error) {
+    console.error("Failed to save action tasks:", error);
+  }
+}, [actionTasks, authUserId, tasksLoadedForUser]);
 
   useEffect(() => {
     // Signed out: clear any previous user's data.
@@ -380,64 +429,103 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     showNotification("Task removed");
   };
 
-  const generateActionPlanForOpportunity = (opp: Opportunity) => {
-    const generated: ActionPlanTask[] = [
-      {
-        id: `gen-${Date.now()}-1`,
-        opportunityId: opp.id,
-        title: `Verify ${opp.provider} Requirements & Intake Deadlines`,
-        description: `Review official documentation on ${opp.officialUrl} to confirm eligibility before preparing files.`,
-        priority: "high",
-        timeline: "Week 1",
-        category: "Official Verification",
-        sourceName: `${opp.provider} Portal`,
-        sourceUrl: opp.officialUrl,
-        completed: false,
-        dueDate: "Within 7 Days",
-      },
-      {
-        id: `gen-${Date.now()}-2`,
-        opportunityId: opp.id,
-        title: "Gather Certified Academic Records & Portfolio Links",
-        description:
-          "Prepare clean digital copies of transcripts, resume, and GitHub repository proof.",
-        priority: "high",
-        timeline: "Week 2",
-        category: "Documentation",
-        completed: false,
-        dueDate: "Within 14 Days",
-      },
-      {
-        id: `gen-${Date.now()}-3`,
-        opportunityId: opp.id,
-        title: "Draft Motivation Essay / Personal Statement",
-        description: `Tailor responses specifically to ${opp.title} goals and demonstrate community impact.`,
-        priority: "medium",
-        timeline: "Week 3–4",
-        category: "Application Prep",
-        completed: false,
-        dueDate: "Within 25 Days",
-      },
-      {
-        id: `gen-${Date.now()}-4`,
-        opportunityId: opp.id,
-        title: "Submit Application via Official Portal",
-        description: `Complete final review and submit directly on verified portal prior to ${opp.deadline}.`,
-        priority: "high",
-        timeline: "Submission Window",
-        category: "Portal Submission",
-        sourceName: "Official Submission Gateway",
-        sourceUrl: opp.officialUrl,
-        completed: false,
-        dueDate: opp.deadline,
-      },
-    ];
 
-    setActionTasks((prev) => [...generated, ...prev]);
-    showNotification(
-      `Generated 4-step action plan for ${opp.title.slice(0, 28)}...`,
-    );
+const generateActionPlanForOpportunity = (opp: Opportunity) => {
+  const officialSource = opp.sources.find((source) => source.isPrimary);
+  const sourceUrl = officialSource?.url || opp.officialUrl;
+  const sourceName = officialSource?.publisher || `${opp.provider} official portal`;
+
+  const tasks: ActionPlanTask[] = [];
+  let nextId = 1;
+
+  const addGeneratedTask = (
+    task: Omit<ActionPlanTask, "id" | "opportunityId" | "completed">,
+  ) => {
+    tasks.push({
+      ...task,
+      id: `gen-${opp.id}-${Date.now()}-${nextId++}`,
+      opportunityId: opp.id,
+      completed: false,
+    });
   };
+
+  const needsVerification =
+    opp.verificationStatus !== "Verified" ||
+    opp.evidenceChecks.some((check) => check.status !== "confirmed");
+
+  if (needsVerification) {
+    const unresolvedChecks = opp.evidenceChecks.filter(
+      (check) => check.status !== "confirmed",
+    );
+
+    addGeneratedTask({
+      title: `Verify ${opp.title}`,
+      description:
+        unresolvedChecks.length > 0
+          ? `Review these unresolved checks: ${unresolvedChecks
+              .map((check) => check.name)
+              .join(", ")}. Check the available evidence and limitations before relying on this opportunity.`
+          : `The current verification status is ${opp.verificationStatus}. Review the available evidence and limitations before relying on this opportunity.`,
+      priority: "high",
+      timeline: "Before applying",
+      category: "Evidence Verification",
+      sourceName,
+      sourceUrl,
+      dueDate: "Before applying",
+    });
+  }
+
+  if (opp.eligibility.length > 0) {
+    addGeneratedTask({
+      title: "Check your eligibility",
+      description: `Compare your circumstances against the stated requirements: ${opp.eligibility.join("; ")}. Confirm any unclear requirements with the provider.`,
+      priority: "high",
+      timeline: "First step",
+      category: "Eligibility",
+      sourceName,
+      sourceUrl,
+      dueDate: "Before preparing your application",
+    });
+  }
+
+  addGeneratedTask({
+    title: "Review application instructions",
+    description: `Follow the stated application method: ${opp.applicationMethod || "Check the provider's official instructions"}. Confirm the required documents, submission steps, and any fees directly with the provider.`,
+    priority: "high",
+    timeline: "Before preparing documents",
+    category: "Application Preparation",
+    sourceName,
+    sourceUrl,
+    dueDate: "Before submission",
+  });
+
+  const deadlineIsKnown =
+    opp.deadlineTimestamp !== null &&
+    Number.isFinite(opp.deadlineTimestamp) &&
+    opp.deadlineTimestamp > 0;
+
+  addGeneratedTask({
+    title: deadlineIsKnown
+      ? "Prepare and submit your application"
+      : "Confirm the deadline before applying",
+    description: deadlineIsKnown
+      ? `Prepare the documents required by the provider, review your application, and submit using the stated application method. Listed deadline: ${opp.deadline}. Confirm it on the official source before submitting.`
+      : `A reliable deadline timestamp is not available. Contact the provider or check its official source for the current deadline before investing time in the application.`,
+    priority: "high",
+    timeline: deadlineIsKnown ? `Listed deadline: ${opp.deadline}` : "As soon as possible",
+    category: "Application Submission",
+    sourceName,
+    sourceUrl,
+    dueDate: deadlineIsKnown ? opp.deadline : "Confirm with provider",
+  });
+
+  setActionTasks(tasks);
+
+  showNotification(
+    `Generated ${tasks.length}-step action plan for ${opp.title.slice(0, 28)}...`,
+  );
+};
+
 
   // Updates the UI immediately, then persists to public.user_profiles.
   // Uses upsert so it also works if the signup trigger didn't create a row.
@@ -507,7 +595,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
-  
+
   const sendChatMessage = async (content: string) => {
     const message = content.trim();
     if (!message) return;
@@ -525,9 +613,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsAiTyping(true);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
+
+  if (sessionError) throw sessionError;
+
+  const accessToken = sessionData.session?.access_token;
+
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken
+        ? { Authorization: `Bearer ${accessToken}` }
+        : {}),
+    },
         body: JSON.stringify({
           sessionId: chatSessionId.current,
           message,
@@ -567,11 +667,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
             ? data.reply
             : "I couldn't generate a response. Please try again.",
         timestamp: "Just now",
-        recommendedOpportunityIds:
-          message.toLowerCase().includes("scholarship") ||
-          message.toLowerCase().includes("fund")
-            ? ["opp-1", "opp-3"]
-            : ["opp-2", "opp-5"],
+       recommendedOpportunityIds: [],
         suggestedPrompts: Array.isArray(data.suggestedPrompts)
           ? data.suggestedPrompts
               .filter(
@@ -603,6 +699,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         selectedOpportunity,
         viewOpportunityDetails,
         opportunities,
+        setOpportunities,
         userProfile,
         isProfileLoading,
         updateUserProfile,

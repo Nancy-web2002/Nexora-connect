@@ -154,6 +154,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     : [];
 
   try {
+    const authenticatedUser = await getAuthenticatedUser(req);
+
+    const savedPreferences = authenticatedUser
+      ? getOpportunityPreferences(
+          authenticatedUser.id,
+          message.trim(),
+        ).preferences
+          .map((item) => item.content)
+          .slice(0, 5)
+      : [];
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -165,6 +176,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         message: message.trim(),
         history: safeHistory,
         context: {
+            ...(savedPreferences.length > 0
+            ? { savedOpportunityPreferences: savedPreferences }
+            : {}),
           ...(safeProfile ? { userProfile: safeProfile } : {}),
           ...(typeof context?.activeOpportunity === 'string'
             ? { activeOpportunity: context.activeOpportunity.slice(0, 500) }
@@ -222,7 +236,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       typeof data.reply !== 'string' ||
       !['ok', 'partial', 'failed'].includes(data.status)
     ) {
-      console.error('Chat workflow response did not match the expected contract.');
+     console.error('Chat workflow response contract mismatch:', {
+  responseType: Array.isArray(data) ? 'array' : typeof data,
+  keys: data && typeof data === 'object' && !Array.isArray(data)
+    ? Object.keys(data)
+    : [],
+  hasReply: typeof data?.reply === 'string',
+  status: typeof data?.status === 'string' ? data.status : 'missing or invalid',
+});
+console.error('Check the n8n workflow response structure; response content was not logged.');
       return res.json({
         reply: fallbackReply,
         suggestedPrompts: ['Find opportunities for me'],
