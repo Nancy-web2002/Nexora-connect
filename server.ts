@@ -418,7 +418,24 @@ app.post('/api/discover', async (req, res) => {
       });
     }
 
-    return res.status(response.status).json(data);
+   if (!response.ok) {
+  console.error('Discovery workflow returned HTTP status:', response.status);
+
+  return res.status(502).json({
+    status: 'failed',
+    error: {
+      code: 'WORKFLOW_FAILED',
+      message: 'Opportunity discovery is temporarily unavailable. Please try again.',
+      retryable: true,
+    },
+    warnings: [],
+    opportunities: [],
+    recommendedOpportunityIds: [],
+    actionPlan: null,
+  });
+}
+
+return res.json(data);
   } catch (error) {
     console.error('Discovery workflow request failed:', error);
 
