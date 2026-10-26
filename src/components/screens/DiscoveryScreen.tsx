@@ -44,6 +44,58 @@ export const DiscoveryScreen: React.FC = () => {
   const [searchStep, setSearchStep] = useState<string>('');
   const [hasSubmittedSearch, setHasSubmittedSearch] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>('');
+  const [preference, setPreference] = useState('');
+const [preferenceStatus, setPreferenceStatus] = useState('');
+const [isSavingPreference, setIsSavingPreference] = useState(false);
+
+const handleSavePreference = async () => {
+  const value = preference.trim();
+
+  if (!value || value.length > 500) {
+    setPreferenceStatus('Enter a preference between 1 and 500 characters.');
+    return;
+  }
+
+  setIsSavingPreference(true);
+  setPreferenceStatus('');
+
+  try {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    if (!session?.access_token) {
+      throw new Error('Please sign in again.');
+    }
+
+    const response = await fetch('/api/memory/preferences', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ preference: value }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Could not save preference.');
+    }
+
+    setPreferenceStatus('Preference saved successfully.');
+    setPreference('');
+  } catch (error) {
+    setPreferenceStatus(
+      error instanceof Error ? error.message : 'Could not save preference.',
+    );
+  } finally {
+    setIsSavingPreference(false);
+  }
+};
 
   const quickPresets = [
     {
@@ -314,6 +366,51 @@ return a.deadlineTimestamp - b.deadlineTimestamp;
             <span>Search</span>
           </button>
         </form>
+
+        <div className="border-t border-slate-200 pt-4 space-y-3">
+  <label
+    htmlFor="opportunity-preference"
+    className="block text-sm font-semibold text-slate-800"
+  >
+    Personalize future recommendations
+  </label>
+
+  <p className="text-xs text-slate-500">
+    Save a preference, such as your preferred funding, location, or opportunity type.
+  </p>
+
+  <form
+    onSubmit={(e) => {
+      e.preventDefault();
+      void handleSavePreference();
+    }}
+    className="flex flex-col sm:flex-row gap-2"
+  >
+    <input
+      id="opportunity-preference"
+      type="text"
+      value={preference}
+      onChange={(e) => setPreference(e.target.value)}
+      maxLength={500}
+      placeholder="e.g. Fully funded scholarships for Nigerian students"
+      className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+    />
+
+    <button
+      type="submit"
+      disabled={isSavingPreference}
+      className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+    >
+      {isSavingPreference ? 'Saving…' : 'Save preference'}
+    </button>
+  </form>
+
+  {preferenceStatus && (
+    <p role="status" className="text-sm text-slate-600">
+      {preferenceStatus}
+    </p>
+  )}
+</div>
 
         {searchError && (
           <div
