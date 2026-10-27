@@ -137,3 +137,17 @@ Test whether Nexora Connect can turn an opportunity into practical next steps.
 *Evidence:*  
 <img width="1069" height="602" alt="Screenshot 2026-10-27 080140" src="https://github.com/user-attachments/assets/23d437a8-717e-4346-aced-5c4b4890cde8" />
 
+### Example 3: Opportunity Recommendations from Saved Preferences
+
+**User preference:** The user is looking for remote virtual assistant internships suitable for beginners in Nigeria.
+
+**User request to the AI Advisor:** “Find opportunities that match my saved preferences.”
+
+**Expected behavior:**
+1. Retrieve the user's relevant saved preferences.
+2. Use those preferences to guide opportunity discovery.
+3. Prioritize relevant remote virtual assistant internships for beginners in Nigeria.
+4. Return results with source links, eligibility information, and verification evidence where available.
+5. Explain when a result cannot be confirmed as a match.
+
+**Known limitation:** Saved preferences may not always be applied correctly. Search results can include unrelated opportunities, so relevance must be verified during testing.
