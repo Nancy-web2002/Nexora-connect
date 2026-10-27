@@ -53,18 +53,37 @@ Nexora Connect helps users discover relevant opportunities, review credibility e
 | POST | `/api/memory/preferences` | Save an authenticated user's preference |
 | GET | `/api/memory/preferences` | Retrieve an authenticated user's preferences |
 
+## NVIDIA Nemotron Integration
+
+Nexora Connect's chat workflow executes the NVIDIA Nemotron model `nvidia/nemotron-3.5-bolt-e4b` through the **Ask Nemotron** node.
+
+**Execution evidence:** n8n execution 169 shows the Ask Nemotron node output for `nvidia/nemotron-3.5-bolt-e4b`. This confirms that the model executes in the chat workflow. It does not, by itself, establish that every chat response or opportunity-discovery operation uses Nemotron.
+
 ## H-MEM Preference Memory
 
 Nexora Connect includes a vendored H-MEM reference implementation and a service for saving and retrieving opportunity preferences.
 
 The current integration:
+
 1. Saves explicit user preferences.
 2. Retrieves relevant saved preferences.
 3. Passes retrieved preferences to the chat workflow as context when available.
 
 The vendored H-MEM test suite currently passes **10 tests**. This confirms those reference implementation tests pass; it does not by itself establish official Meterless conformance.
 
-**Known limitation:** End-to-end testing has shown that the AI assistant may still ask for information already saved and may make incorrect assumptions about a user's study level. The workflow's use of saved preference context requires further verification.
+### Known Limitations
+
+End-to-end testing has shown that the AI assistant may still ask for information already saved and may make incorrect assumptions about a user's study level. Recent testing has also exposed an intent-routing issue: requests for specific opportunity categories, such as virtual-assistant internships, may return results based on older scholarship preferences.
+
+These findings indicate that preference retrieval, conversation context, and opportunity-search intent handling require further verification.
+
+### Verification Status
+
+- **Nemotron execution:** Confirmed in n8n execution 169 for the Ask Nemotron node.
+- **H-MEM reference tests:** 10 tests passing.
+- **Preference-aware chat behavior:** Implemented, but end-to-end behavior has known limitations.
+- **Official Meterless conformance:** Not established by the available test results.
+
 
 ## Local Development
 
