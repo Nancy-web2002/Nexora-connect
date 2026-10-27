@@ -81,3 +81,40 @@ The vendored H-MEM test suite currently passes **10 tests**. This confirms those
 
    ```bash
    npm install
+
+   ## Real-World Test Examples
+
+These examples document the Nexora Connect user journey using the deployed application. Results are recorded from actual app interactions; screenshots are included as supporting evidence.
+
+### Example 1: Opportunity Credibility and Verification
+
+*User actions:*
+1. Searched for an opportunity.
+2. Initiated verification in Nexora Connect.
+3. Opened the company's website to inspect the source.
+
+*Purpose:*  
+Demonstrate opportunity discovery, the displayed verification result, and source inspection.
+
+*Evidence:*
+- Screenshot 1: Opportunity search.
+<img width="1089" height="597" alt="Screenshot 2026-10-27 074529" src="https://github.com/user-attachments/assets/22425d04-5a65-45cc-92c7-8a74b295a9fe" />
+- Screenshot 2: Verification result.
+<img width="1009" height="521" alt="Screenshot 2026-10-27 074624" src="https://github.com/user-attachments/assets/4e65f84a-f5a8-4ef0-9978-a1ee0c342dd3" />
+- Screenshot 3: Company website opened.
+<img width="1098" height="679" alt="Screenshot 2026-10-27 074646" src="https://github.com/user-attachments/assets/2ba67c16-46a0-410c-aebf-852cf088cd25" />
+
+*Limitation:*  
+Opening a company website alone does not establish that an opportunity is legitimate. Verification conclusions depend on the available evidence.
+
+### Example 2: Application Action Plan
+
+*Test input:*  
+“Create an action plan for applying to this opportunity.”
+
+*Purpose:*  
+Test whether Nexora Connect can turn an opportunity into practical next steps.
+
+*Evidence:*  
+<img width="1069" height="602" alt="Screenshot 2026-10-27 080140" src="https://github.com/user-attachments/assets/23d437a8-717e-4346-aced-5c4b4890cde8" />
+
