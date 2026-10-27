@@ -632,24 +632,28 @@ const generateActionPlanForOpportunity = (opp: Opportunity) => {
           sessionId: chatSessionId.current,
           message,
           history: chatMessages.slice(-6).map((m) => ({
-            role: m.sender === "user" ? "user" : "model",
-            content: m.content,
-          })),
-          context: {
-            userProfile: {
-              name: userProfile.name,
-              role: userProfile.role,
-              primaryGoal: userProfile.primaryGoal,
-              fieldOfInterest: userProfile.fieldOfInterest,
-              experienceLevel: userProfile.experienceLevel,
-              location: userProfile.location,
-            },
-            activeOpportunity: selectedOpportunity.title,
-          },
+  role: m.sender === "user" ? "user" : "model",
+  content: m.content,
+})),
+context: {
+  userProfile: {
+    name: userProfile.name,
+    role: userProfile.role,
+    primaryGoal: userProfile.primaryGoal,
+    fieldOfInterest: userProfile.fieldOfInterest,
+    experienceLevel: userProfile.experienceLevel,
+    location: userProfile.location,
+  },
+  activeOpportunity: selectedOpportunity.title,
+  latestUserRequest: message,
+  useSavedPreferences:
+    !/without using my saved preference|ignore my (saved )?preferences|don't use my saved preferences/i.test(message),
+},
         }),
       });
 
       const data = await response.json();
+      console.log("CHAT API RESPONSE:", data);
 
       if (!response.ok) {
         throw new Error(
@@ -659,26 +663,115 @@ const generateActionPlanForOpportunity = (opp: Opportunity) => {
         );
       }
 
-      const assistantMsg: ChatMessage = {
-        id: `msg-${Date.now()}-assistant`,
+      
+const assistantMsg: ChatMessage = {
+  id: `msg-${Date.now()}-assistant`,
+  sender: "assistant",
+  content:
+    typeof data.reply === "string" && data.reply.trim()
+      ? data.reply
+      : "I couldn't generate a response. Please try again.",
+  timestamp: "Just now",
+  recommendedOpportunityIds: [],
+  suggestedPrompts: Array.isArray(data.suggestedPrompts)
+    ? data.suggestedPrompts
+        .filter(
+          (prompt: unknown): prompt is string =>
+            typeof prompt === "string",
+        )
+        .slice(0, 3)
+    : [],
+};
+
+setChatMessages((prev) => [...prev, assistantMsg]);
+
+if (
+  data.readyToDiscover === true &&
+  typeof data.discoverQuery === "string" &&
+  data.discoverQuery.trim()
+) {
+  const discoveryQuery = data.discoverQuery.trim();
+
+  setChatMessages((prev) => [
+    ...prev,
+    {
+      id: `msg-${Date.now()}-discovering`,
+      sender: "assistant",
+      content: "Searching for relevant opportunities using your saved preferences...",
+      timestamp: "Just now",
+      recommendedOpportunityIds: [],
+      suggestedPrompts: [],
+    },
+  ]);
+
+  try {
+    const discoveryResponse = await fetch("/api/discover", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken
+          ? { Authorization: `Bearer ${accessToken}` }
+          : {}),
+      },
+      body: JSON.stringify({
+        sessionId: chatSessionId.current,
+        userProfile,
+        query: discoveryQuery,
+      }),
+    });
+
+    const discoveryData = await discoveryResponse.json();
+
+    if (!discoveryResponse.ok) {
+      throw new Error(
+        discoveryData?.error?.message ||
+          `Discovery failed: HTTP ${discoveryResponse.status}`,
+      );
+    }
+
+    if (!Array.isArray(discoveryData?.opportunities)) {
+      throw new Error("Discovery returned an invalid opportunities list.");
+    }
+
+    const foundOpportunities = discoveryData.opportunities;
+    setOpportunities(foundOpportunities);
+
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: `msg-${Date.now()}-results`,
         sender: "assistant",
         content:
-          typeof data.reply === "string" && data.reply.trim()
-            ? data.reply
-            : "I couldn't generate a response. Please try again.",
+          foundOpportunities.length > 0
+            ? `I found ${foundOpportunities.length} opportunities. Review the results below and check each opportunity's verification evidence before applying.`
+            : "The discovery service returned no opportunities for this search. Try adjusting your search.",
         timestamp: "Just now",
-       recommendedOpportunityIds: [],
-        suggestedPrompts: Array.isArray(data.suggestedPrompts)
-          ? data.suggestedPrompts
-              .filter(
-                (prompt: unknown): prompt is string =>
-                  typeof prompt === "string",
-              )
-              .slice(0, 3)
-          : [],
-      };
+        recommendedOpportunityIds: foundOpportunities
+          .map((opp: { id?: string }) => opp.id)
+          .filter(
+            (id: unknown): id is string =>
+              typeof id === "string" && id.length > 0,
+          ),
+        suggestedPrompts: [],
+      },
+    ]);
+  } catch (discoveryError) {
+    console.error("Chat-triggered discovery failed:", discoveryError);
 
-      setChatMessages((prev) => [...prev, assistantMsg]);
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: `msg-${Date.now()}-discovery-error`,
+        sender: "assistant",
+        content:
+          "I couldn't retrieve the opportunities this time. Please open Discover and try again.",
+        timestamp: "Just now",
+        recommendedOpportunityIds: [],
+        suggestedPrompts: [],
+      },
+    ]);
+  }
+}
     } catch (err) {
       console.error("AI chat request failed:", err);
       setChatError(
