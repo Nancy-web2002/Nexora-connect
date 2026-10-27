@@ -152,19 +152,39 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           content: item.content.slice(0, 2000),
         }))
     : [];
+    const isNewOpportunitySearch =
+  /\b(find|search|show|look for)\b/i.test(message.trim()) &&
+  /\b(internship|internships|virtual assistant|virtual assistants|jobs|scholarships|scholarship|grants|fellowships)\b/i.test(
+    message.trim(),
+  );
+
+const relevantHistory = isNewOpportunitySearch ? [] : safeHistory;
 
   try {
     const authenticatedUser = await getAuthenticatedUser(req);
 
-    const savedPreferences = authenticatedUser
-      ? getOpportunityPreferences(
-          authenticatedUser.id,
-          message.trim(),
-        ).preferences
-          .map((item) => item.content)
-          .slice(0, 5)
-      : [];
+   const explicitlyIgnorePreferences =
+  /without using my saved preferences|ignore my (saved )?preferences|don't use my saved preferences|do not use my saved preferences/i.test(
+    message.trim(),
+  );
 
+const requestsSpecificOpportunity =
+  /\b(internship|internships|virtual assistant|virtual assistants|job|jobs|scholarship|scholarships|fellowship|fellowships|grant|grants|volunteer|volunteering)\b/i.test(
+    message.trim(),
+  );
+
+const useSavedPreferences =
+  !explicitlyIgnorePreferences && !requestsSpecificOpportunity;
+
+const savedPreferences =
+  authenticatedUser && useSavedPreferences
+    ? getOpportunityPreferences(
+        authenticatedUser.id,
+        message.trim(),
+      ).preferences
+        .map((item) => item.content)
+        .slice(0, 5)
+    : [];
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -174,16 +194,18 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       body: JSON.stringify({
         sessionId: sessionId.trim(),
         message: message.trim(),
-        history: safeHistory,
-        context: {
-            ...(savedPreferences.length > 0
-            ? { savedOpportunityPreferences: savedPreferences }
-            : {}),
-          ...(safeProfile ? { userProfile: safeProfile } : {}),
-          ...(typeof context?.activeOpportunity === 'string'
-            ? { activeOpportunity: context.activeOpportunity.slice(0, 500) }
-            : {}),
-        },
+       history: relevantHistory,
+       context: {
+  useSavedPreferences,
+latestUserRequest: message.trim(),
+...(savedPreferences.length > 0
+  ? { savedOpportunityPreferences: savedPreferences }
+  : {}),
+  ...(safeProfile ? { userProfile: safeProfile } : {}),
+  ...(typeof context?.activeOpportunity === 'string'
+    ? { activeOpportunity: context.activeOpportunity.slice(0, 500) }
+    : {}),
+},
       }),
       signal: AbortSignal.timeout(25000),
     });
@@ -264,16 +286,32 @@ console.error('Check the n8n workflow response structure; response content was n
       });
     }
 
-    return res.json({
-      reply: data.reply,
-      suggestedPrompts: Array.isArray(data.suggestedPrompts)
-        ? data.suggestedPrompts.filter((p: unknown) => typeof p === 'string').slice(0, 3)
-        : [],
-      readyToDiscover: data.readyToDiscover === true,
-      generatedBy: 'n8n-nemotron',
-      meta: data.meta,
-      status: data.status,
-    });
+   
+return res.json({
+  reply:
+  typeof message === "string" && message.trim()
+    ? `I'll look into: ${message.trim()}`
+    : data.reply,
+
+suggestedPrompts: Array.isArray(data.suggestedPrompts)
+  ? data.suggestedPrompts.filter((p: unknown) => typeof p === "string").slice(0, 3)
+  : [],
+  readyToDiscover: data.readyToDiscover === true,
+ discoverQuery:
+  data.readyToDiscover === true
+    ? (
+        typeof message === "string" && message.trim()
+          ? message.trim()
+          : typeof data.discoverQuery === "string"
+            ? data.discoverQuery.trim()
+            : null
+      )
+    : null,
+  generatedBy: 'n8n-nemotron',
+  meta: data.meta,
+  status: data.status,
+});
+
    } catch (error) {
     const timedOut =
       error instanceof Error &&
